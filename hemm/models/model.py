@@ -4,7 +4,7 @@ from typing import Optional, Union
 from PIL import Image
 
 
-class Model(abc.ABC):
+class HEMMModel(abc.ABC):
     '''
     Abstract BaseModel class assuming a multi-modal foundation model.
     Takes in inputs of image and text, and outputs image/text.
@@ -15,15 +15,21 @@ class Model(abc.ABC):
                  weight_dir: str,
                  ) -> None:
         """
-        Initializes the model
+        Initializes the args for the model
         :param weight_dir: path to the weights of the model.
+        """
+
+    @abc.abstractmethod
+    def load_model(self, model_loader_class, processor_class):
+        """
+        Loads the model and it's processor with the initialized weight directory
+        :return:
         """
 
     @abc.abstractmethod
     def generate(self,
                  text: Optional[str],
-                 image: Optional[Image],
-                 return_logits: Optional[bool]
+                 image: Optional[Image]
                  ) -> Union[str, Image, torch.FloatTensor]:
         """
         Generates output for the given prompt.

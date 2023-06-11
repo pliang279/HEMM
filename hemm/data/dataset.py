@@ -2,17 +2,19 @@ import abc
 import torch
 from typing import Optional, Union, List
 
-from model import Model
-from metric import Metric
+from hemm.models.model import HEMMModel
+from hemm.metrics.metric import HEMMMetric
 
 
-class Dataset(abc.ABC):
+class HEMMDatasetEvaluator(abc.ABC):
     """
-    General dataset class used for evaluating a Model on a set of metrics.
+    General dataset class used for evaluating a Model on a set of metrics. This class will be used for pre-processing
+    and handling of data.
     """
+
     @abc.abstractmethod
     def __init__(self,
-                 dataset_path: str,
+                 dataset_dir: str,
                  ):
         """
         Initialize dataset
@@ -20,10 +22,9 @@ class Dataset(abc.ABC):
         """
 
     @abc.abstractmethod
-    def evaluate(self,
-                 model: Model,
-                 metrics: List[Metric],
-                 ):
+    def evaluate_dataset(self,
+                         metrics: List[HEMMMetric],
+                         ):
         """
         :param model: model which can evaluate on the whole dataset.
         :param metrics: list of metrics used for evaluation.
