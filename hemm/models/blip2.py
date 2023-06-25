@@ -31,3 +31,4 @@ class BLIP2(HEMMModel):
         generated_text = model.generate({"image": image, "prompt":text})[0].strip()
         return generated_text
         
+        
