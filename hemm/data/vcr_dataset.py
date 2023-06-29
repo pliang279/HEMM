@@ -78,7 +78,7 @@ class VCR(Dataset):
 		
 		prompt, rationale_prompt = generate_prompt(question, new_answer_choices, new_rationale_choices, ann["answer_label"])
 
-		img = Image.open(f"{self.image_dir}/{ann['img_fn']}")
+		img = Image.open(f"{self.image_dir}/{ann['img_fn']}").convert("RGB")
 		metadata = json.load(open(f"{self.image_dir}/{ann['metadata_fn']}"))
 		boxes = metadata["boxes"]
 		segments = metadata["segments"]
