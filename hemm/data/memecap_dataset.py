@@ -10,40 +10,38 @@ from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 from hemm.utils.evaluator_mixin import EvaluatorMixin
 
-class Memotion(Dataset):
+class Memecap(Dataset):
 	def __init__(self,
 				 image_dir,
 				 annotation_file,
 				 device,
 				 ):
 		self.image_dir = image_dir
-		with open(annotation_file) as f:
-			self.annotation = f.readlines()
-
+		self.annotation = json.load(open(annotation_file))
 		self.device = device
 
 	def __getitem__(self, index):
 		ann = self.annotation[index]
-		fields = ann.strip().split(",")
+		img_name = f"{self.image_dir}/{ann['img_fname'].strip()}"
 
-		img_name = f"{self.image_dir}/{fields[1].strip()}"
-		caption = fields[3].strip().lower()
-		humour_label = fields[4].strip()
+		img_desc = ann["img_captions"][0]
+		title = ann["title"]
+		gt_caption = ann["meme_captions"][0]
 
-		prompt = f"Question: Given the Meme and the following caption, is the meme 0) funny 1) very funny 2) not funny 3) hilarious, Caption:{caption}"
+		prompt = f"This is a meme with the title {title}. The image description is {img_desc}. What is the meme poster trying to convey? Answer:"
 
 		img = np.asarray(Image.open(img_name).convert("RGB"))
 
 		return {
 			"image": img, 
 			"prompt": prompt,
-			"gt": humour_label
+			"gt": gt_caption
 		}
 
 	def __len__(self):
 		return len(self.annotation)
 
-class MemotionEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
+class MemecapEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
 	def __init__(self,
 				 dataset_dir,
 				 model,
