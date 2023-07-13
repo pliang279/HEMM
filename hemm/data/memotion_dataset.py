@@ -1,6 +1,7 @@
 import os
 import cv2
 import json
+import numpy as np
 from typing import Optional, Union, List
 from PIL import Image
 import torch
@@ -9,52 +10,41 @@ from torch.utils.data import Dataset, DataLoader
 # from hemm.metrics.metric import HEMMMetric
 # from hemm.utils.evaluator_mixin import EvaluatorMixin
 
-class Flickr30k(Dataset):
+class Memotion(Dataset):
 	def __init__(self,
 				 image_dir,
 				 annotation_file,
 				 device,
 				 ):
 		self.image_dir = image_dir
-		self.annotation = json.load(open(annotation_file, "r"))
+		with open(annotation_file) as f:
+			self.annotation = f.readlines()
+		
+		self.annotation = self.annotation[1:]
 		self.device = device
 
-		self.text = []
-		self.image = []
-		self.txt2img = {}
-		self.img2txt = {}
-		self.img_txt = []
-
-		txt_id = 0
-		for img_id, ann in enumerate(self.annotation):
-			self.image.append(ann['image'])
-			self.img2txt[img_id] = []
-			for i, caption in enumerate(ann['caption']):
-				self.text.append(caption)
-				self.img2txt[img_id].append(txt_id)
-				self.txt2img[txt_id] = img_id
-				self.img_txt.append({"image": ann["image"], "caption": caption})
-				txt_id += 1
-
 	def __getitem__(self, index):
-		img_text_pair = self.img_txt[index]
-		img_name = f"{image_dir}/{img_text_pair["image"]}"
+		ann = self.annotation[index]
+		fields = ann.strip().split(",")
 
-		caption = img_text_pair["caption"]
-		prompt = f"Question: Is the following caption suitable for the given image, Answer yes or no, Caption: {caption}"
+		img_name = f"{self.image_dir}/{fields[1].strip()}"
+		caption = fields[3].strip().lower()
+		humour_label = fields[4].strip()
 
-		img = Image.open(img_name)
+		prompt = f"Question: Given the Meme and the following caption, is the meme 0) funny 1) very funny 2) not funny 3) hilarious, Caption:{caption}"
+
+		img = np.asarray(Image.open(img_name).convert("RGB"))
 
 		return {
 			"image": img, 
 			"prompt": prompt,
-			"gt": "yes"
+			"gt": humour_label
 		}
 
 	def __len__(self):
-		return len(self.img_txt)
+		return len(self.annotation)
 
-# class Flickr30kEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
+# class MemotionEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
 # 	def __init__(self,
 # 				 dataset_dir,
 # 				 model,
