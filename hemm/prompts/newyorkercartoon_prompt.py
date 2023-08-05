@@ -1,9 +1,8 @@
 class NewYorkerCartoonPrompt:
     def __init__(self):
-        self.prompt = f"""You are given an cartoon image.
-            You have to generate a funny caption for the image. Try to make it as funny as possible.
-            Funny Caption:
-            """
+        self.prompt = """You are given an cartoon image and a caption. start the answer with yes if the caption is funny or No if the caption is not funny.
+                    Caption:{}
+                    """
 
-    def format_prompt(self):
-        return self.prompt
+    def format_prompt(self, text):
+        return self.prompt.format(text)
