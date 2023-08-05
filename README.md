@@ -17,6 +17,7 @@ python -m hemm.main
 ```
 
 Note: For some datasets(Hateful memes, Memotion), kaggle is used. Make sure to get your api key from the following [link](https://github.com/Kaggle/kaggle-api).
+Provide the path of the directory where kaggle.json is stored in the ```load_dataset_evaluator```
 
 Sample code:
 
@@ -28,7 +29,7 @@ model = load_model(model_key)
 model.load_weights()
 
 dataset_name = 'hateful_memes'
-dataset_evaluator = load_dataset_evaluator(dataset_name, kaggle_api_path='kaggle.json')
+dataset_evaluator = load_dataset_evaluator(dataset_name, kaggle_api_directory='./')
 
 metric_name = 'accuracy'
 metric = load_metric(metric_name)
