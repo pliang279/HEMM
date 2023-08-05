@@ -22,12 +22,12 @@ class BLIP2(HEMMModel):
                 text: Optional[str],
                 image,
             ) -> str:
-
+        image = Image.open(image).convert("RGB")
         processed_image = self.processor["eval"](image).unsqueeze(0).to(self.device)
         generated_text = self.model.generate({"image": processed_image, "prompt":text})[0].strip()
         return generated_text
 
-    def prompt_extractor(self, text, dataset_key):
+    def answer_extractor(self, text, dataset_key):
         if dataset_key == 'hateful_memes' or 'newyorkercartoon':
             text = text[:3]
             text = text.lower().strip()

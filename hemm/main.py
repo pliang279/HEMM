@@ -10,5 +10,5 @@ dataset_evaluator = load_dataset_evaluator(dataset_name)
 metric_name = 'accuracy'
 metric = load_metric(metric_name)
 
-results = dataset_evaluator.evaluate(model=model, metric=metric)
+results = dataset_evaluator.evaluate_dataset(model=model, metric=metric)
 print(results)

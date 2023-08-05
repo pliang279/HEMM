@@ -44,7 +44,6 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
         self.load(self.kaggle_api_path)
         self.metric = metric
         self.model = model
-        self.model.to(self.device)
         df = pd.read_excel(self.data_path)
         predictions = []
         ground_truth = []
@@ -62,5 +61,5 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
                 random_item = random.choice(list(range(0, 4)))
                 predictions.append(random_item)
         
-        results = self.metric(ground_truth, predictions)
+        results = self.metric.compute(ground_truth, predictions)
         return results

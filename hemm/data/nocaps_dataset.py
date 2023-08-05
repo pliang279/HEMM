@@ -26,7 +26,7 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
         return prompt_text
 
     def load(self):
-        shell_command('python -m wget https://s3.amazonaws.com/nocaps/nocaps_val_4500_captions.json')
+        shell_command('wget https://s3.amazonaws.com/nocaps/nocaps_val_4500_captions.json')
 
     def evaluate_dataset(self,
                          model,
@@ -35,11 +35,10 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
         self.load()
         self.metric = metric
         self.model = model
-        self.model.to(self.device)
         json_file = json.load(open(self.dataset_dir, 'r'))
         predictions = []
         ground_truth = []
-        for index, image_dict in tqdm(enumerate(json_file['images'])):
+        for index, image_dict in tqdm(enumerate(json_file['images']), total=len(json_file['images'])):
             image_url = image_dict['coco_url']
             image_caption = json_file['annotations'][image_dict['id']]['caption']
             text = self.get_prompt()
@@ -52,5 +51,5 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
         
-        results = self.metric(ground_truth, predictions)
+        results = self.metric.compute(ground_truth, predictions)
         return results

@@ -41,14 +41,13 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
         self.load(self.kaggle_api_path)
         self.model = model
         self.metric = metric
-        self.model.to(self.device)
         label_path = os.path.join(self.dataset_dir, 'data', self.evaluate_path)
         json_list = list(open(label_path, 'r'))
         image_dir = os.path.join(self.dataset_dir, 'data', 'img')
 
         ground_truth = []
         predictions = []
-        for index in tqdm(range(len(json_list))):
+        for index in tqdm(range(len(json_list)), total=len(json_list)):
             json_obj = json.loads(json_list[index])
             text = self.get_prompt(json_obj['text'])
             output = self.model.generate(text, os.path.join(image_dir, json_obj['img']))
@@ -59,5 +58,5 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
                 predictions.append(0)
             ground_truth.append(json_obj['label'])
 
-        results = metric.compute(ground_truth, predictions)
+        results = self.metric.compute(ground_truth, predictions)
         return results

@@ -3,7 +3,7 @@ from hemm.metrics.metric import HEMMMetric
 import evaluate
 
 class BleuMetric(HEMMMetric):
-    def compute_metric(self, 
+    def compute(self, 
                        ground_truth, 
                        predictions):
         bleu = evaluate.load('bleu')

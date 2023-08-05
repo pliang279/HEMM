@@ -41,10 +41,9 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         self.load()
         self.metric = metric
         self.model = model
-        self.model.to(self.device)
         predictions = []
         ground_truth = []
-        for img in tqdm(os.listdir(self.image_dir)):
+        for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
             img_id = img.split('.jpg')[0]
             img_path = os.path.join(self.image_dir, img)
             if os.path.exists(os.path.join(self.caption_dir, img_id+'.csv')):

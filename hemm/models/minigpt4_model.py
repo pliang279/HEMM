@@ -98,7 +98,7 @@ class MiniGPT4(HEMMModel):
         answer, chat_state, img_list = self.answer_question(chat_state, img_list, 1, 1)
         return answer
 
-    def prompt_extractor(self, text, dataset_key):
+    def answer_extractor(self, text, dataset_key):
         if dataset_key == 'hateful_memes' or 'newyorkercartoon':
             text = text[:3]
             text = text.lower().strip()
