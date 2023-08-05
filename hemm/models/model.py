@@ -12,7 +12,7 @@ class HEMMModel(abc.ABC):
 
     @abc.abstractmethod
     def __init__(self,
-                 weight_dir: str,
+                 weight_dir: str = None,
                  ) -> None:
         """
         Initializes the args for the model
@@ -20,7 +20,7 @@ class HEMMModel(abc.ABC):
         """
 
     @abc.abstractmethod
-    def load_model(self, model_loader_class, processor_class):
+    def load_weights(self, model_loader_class, processor_class):
         """
         Loads the model and it's processor with the initialized weight directory
         :return:
@@ -29,8 +29,8 @@ class HEMMModel(abc.ABC):
     @abc.abstractmethod
     def generate(self,
                  text: Optional[str],
-                 image: Optional[Image]
-                 ) -> Union[str, Image, torch.FloatTensor]:
+                 image
+                 ):
         """
         Generates output for the given prompt.
         :param text: String text prompt

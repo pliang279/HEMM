@@ -14,7 +14,7 @@ class HEMMDatasetEvaluator(abc.ABC):
 
     @abc.abstractmethod
     def __init__(self,
-                 dataset_dir: str,
+                 dataset_dir: str = None,
                  ):
         """
         Initialize dataset
@@ -29,4 +29,10 @@ class HEMMDatasetEvaluator(abc.ABC):
         :param model: model which can evaluate on the whole dataset.
         :param metrics: list of metrics used for evaluation.
         :return:
+        """
+    
+    @abc.abstractmethod
+    def load(self):
+        """
+        download dataset script
         """

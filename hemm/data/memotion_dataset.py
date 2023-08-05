@@ -1,75 +1,67 @@
 import os
-import cv2
 import json
-import numpy as np
-from typing import Optional, Union, List
 from PIL import Image
+import requests
 import torch
-from torch.utils.data import Dataset, DataLoader
+import subprocess
+from tqdm import tqdm
+import pandas as pd
+import random 
+
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
-from hemm.utils.evaluator_mixin import EvaluatorMixin
+from hemm.prompts.memotion_prompt import MemotionPrompt
+from hemm.utils.common_utils import shell_command
 
-class Memotion(Dataset):
-	def __init__(self,
-				 image_dir,
-				 annotation_file,
-				 device,
-				 ):
-		self.image_dir = image_dir
-		with open(annotation_file) as f:
-			self.annotation = f.readlines()
+class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
+    def __init__(self,
+                 data_path = 'memotion-dataset-7k/memotion_dataset_7k/labels.xlsx',
+                 image_dir = 'memotion-dataset-7k/memotion_dataset_7k/images',
+                 kaggle_api_path = None
+                 ):
+        super().__init__()
+        self.dataset_key = 'memotion'
+        self.data_path = data_path
+        self.image_dir = image_dir
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.kaggle_api_path = kaggle_api_path
+        self.prompt = MemotionPrompt()
+        self.choices = ['funny', 'very_funny', 'not_funny', 'hilarious']
 
-		self.device = device
+    def get_prompt(self, caption) -> str:
+        prompt_text = self.prompt.format_prompt(caption)
+        return prompt_text
 
-	def __getitem__(self, index):
-		ann = self.annotation[index]
-		fields = ann.strip().split(",")
+    def load(self, kaggle_api_path):
+        os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
+        if not os.path.exists('memotion-dataset-7k.zip'):
+          shell_command('kaggle datasets download -d williamscott701/memotion-dataset-7k')
+        if not os.path.exists('memotion-dataset-7k'):
+          shell_command('unzip memotion-dataset-7k.zip -d memotion-dataset-7k')
 
-		img_name = f"{self.image_dir}/{fields[1].strip()}"
-		caption = fields[3].strip().lower()
-		humour_label = fields[4].strip()
-
-		prompt = f"Question: Given the Meme and the following caption, is the meme 0) funny 1) very funny 2) not funny 3) hilarious, Caption:{caption}"
-
-		img = np.asarray(Image.open(img_name).convert("RGB"))
-
-		return {
-			"image": img, 
-			"prompt": prompt,
-			"gt": humour_label
-		}
-
-	def __len__(self):
-		return len(self.annotation)
-
-class MemotionEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
-	def __init__(self,
-				 dataset_dir,
-				 model,
-				 evaluate_path,
-				 device,
-				 batch_size,
-				 shuffle_dataset,
-				 output_file_path
-				 ):
-		super().__init__(dataset_dir)
-		self.dataset_dir = dataset_dir
-		self.model = model
-		self.evaluate_path = evaluate_path
-		self.device = device
-		self.batch_size = batch_size
-		self.shuffle_dataset = shuffle_dataset
-		self.output_file_path = output_file_path
-
-	def evaluate_dataset(self,
-						 metrics: List[HEMMMetric],
-						 ) -> None:
-
-		image_dir = os.path.join(self.dataset_dir, 'val2014')        
-		annotation_file = os.path.join(self.dataset_dir, 'mscoco_val2014_annotations.json')
-		question_file = os.path.join(self.dataset_dir, 'OpenEnded_mscoco_val2014_questions.json')
-
-		pt_dataset = OKVQA(image_dir, annotation_file, question_file, self.device)
-		loader = DataLoader(pt_dataset, batch_size=self.batch_size, shuffle=self.shuffle_dataset)
-		self.evaluate(self.model, loader, self.output_file_path, modalities=['img','text'])
+    def evaluate_dataset(self,
+                         model,
+                         metric,
+                         ) -> None:
+        self.load(self.kaggle_api_path)
+        self.metric = metric
+        self.model = model
+        df = pd.read_excel(self.data_path)
+        predictions = []
+        ground_truth = []
+        for index, row in tqdm(df.iterrows(), total=len(df)):
+            image_path = os.path.join(self.image_dir, row['image_name'])
+            caption = row['text_corrected']
+            gt_label = row['humour']
+            ground_truth.append(self.choices.index(gt_label))
+            text = self.get_prompt(caption)
+            output = self.model.generate(text, image_path)
+            answer = self.model.answer_extractor(output, self.dataset_key)
+            if answer:
+                predictions.append(answer)
+            else:
+                random_item = random.choice(list(range(0, 4)))
+                predictions.append(random_item)
+        
+        results = self.metric.compute(ground_truth, predictions)
+        return results
