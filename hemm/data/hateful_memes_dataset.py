@@ -8,6 +8,7 @@ import subprocess
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.hateful_memes_prompt import HatefulMemesPrompt
+from hemm.utils.common_utils import shell_command
 
 class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -26,8 +27,8 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
     
     def load(self, kaggle_api_path):
         os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
-        subprocess.Popen('kaggle datasets download -d parthplc/facebook-hateful-meme-dataset', shell=True)
-        subprocess.Popen('unzip archive.zip -d ./', shell=True)
+        shell_command('kaggle datasets download -d parthplc/facebook-hateful-meme-dataset')
+        shell_command('unzip archive.zip -d ./')
 
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)
@@ -50,7 +51,7 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
         for index in tqdm(range(len(json_list))):
             json_obj = json.loads(json_list[index])
             text = self.get_prompt(json_obj['text'])
-            output = self.model.generate(os.path.join(image_dir, json_obj['img']), text)
+            output = self.model.generate(text, os.path.join(image_dir, json_obj['img']))
             answer = self.model.answer_extractor(output, self.dataset_key)
             if answer == 'yes':
                 predictions.append(1)

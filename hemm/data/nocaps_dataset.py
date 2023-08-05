@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.nocaps_prompt import NoCapsPrompt
+from hemm.utils.common_utils import shell_command
 
 class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -25,7 +26,7 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
         return prompt_text
 
     def load(self):
-        subprocess.Popen('python -m wget https://s3.amazonaws.com/nocaps/nocaps_val_4500_captions.json', shell=True)
+        shell_command('python -m wget https://s3.amazonaws.com/nocaps/nocaps_val_4500_captions.json')
 
     def evaluate_dataset(self,
                          model,
@@ -48,7 +49,7 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
                     f.write(response.content)
             image_path = "./current_image.jpg"
             ground_truth.append(image_caption)
-            output = self.model.generate(image_path, text)
+            output = self.model.generate(text, image_path)
             predictions.append(output)
         
         results = self.metric(ground_truth, predictions)

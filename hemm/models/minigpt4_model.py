@@ -3,10 +3,11 @@ import subprocess
 import argparse
 import re
 
-from hemm.minigpt4.common.config import Config
-from hemm.minigpt4.common.dist_utils import get_rank
-from hemm.minigpt4.common.registry import registry
-from hemm.minigpt4.conversation.conversation import Chat, CONV_VISION
+from hemm.models.minigpt4.common.config import Config
+from hemm.models.minigpt4.common.dist_utils import get_rank
+from hemm.models.minigpt4.common.registry import registry
+from hemm.models.minigpt4.conversation.conversation import Chat, CONV_VISION
+from hemm.utils.common_utils import shell_command
 
 from hemm.models.model import HEMMModel
 
@@ -21,11 +22,40 @@ def parse_args():
         "in xxx=yyy format will be merged into config file (deprecate), "
         "change to --cfg-options instead.",
     )
-    args = parser.parse_args(["--cfg-path", "eval_configs/minigpt4_eval.yaml"])
+    args = parser.parse_args(["--cfg-path", "hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml"])
     return args
 
 class MiniGPT4(HEMMModel):
     def __init__(self):
+        pass
+    
+    def load_weights(self):
+        # if not os.path.exists('MiniGPT-4'):
+        #     subprocess.Popen('git clone https://github.com/Vision-CAIR/MiniGPT-4.git', shell=True)
+        shell_command('wget https://huggingface.co/wangrongsheng/MiniGPT4-7B/resolve/main/prerained_minigpt4_7b.pth')
+
+        # Read in the file
+        with open('hemm/models/minigpt4/configs/models/minigpt4.yaml', 'r') as file:
+            filedata = file.read()
+
+        # Replace the target string
+        filedata = filedata.replace('/path/to/vicuna/weights/', 'wangrongsheng/MiniGPT-4-LLaMA-7B')
+
+        # Write the file out again
+        with open('hemm/models/minigpt4/configs/models/minigpt4.yaml', 'w') as file:
+            file.write(filedata)
+
+        # Read in the file
+        with open('hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml', 'r') as file:
+            filedata = file.read()
+
+        # Replace the target string
+        filedata = filedata.replace('/path/to/pretrained/ckpt/', 'prerained_minigpt4_7b.pth')
+
+        # Write the file out again
+        with open('hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml', 'w') as file:
+            file.write(filedata)
+        
         args = parse_args()
         cfg = Config(args)
 
@@ -37,36 +67,6 @@ class MiniGPT4(HEMMModel):
         vis_processor_cfg = cfg.datasets_cfg.cc_sbu_align.vis_processor.train
         vis_processor = registry.get_processor_class(vis_processor_cfg.name).from_config(vis_processor_cfg)
         self.chat = Chat(model, vis_processor, device='cuda:{}'.format(args.gpu_id))
-    
-    def load_weights(self):
-        # if not os.path.exists('MiniGPT-4'):
-        #     subprocess.Popen('git clone https://github.com/Vision-CAIR/MiniGPT-4.git', shell=True)
-            
-        subprocess.Popen('wget https://huggingface.co/wangrongsheng/MiniGPT4-7B/resolve/main/prerained_minigpt4_7b.pth', shell=True)
-        subprocess.Popen('cd MiniGPT-4/', shell=True)
-        subprocess.Popen('cd ..', shell=True)
-
-        # Read in the file
-        with open('minigpt4/configs/models/minigpt4.yaml', 'r') as file:
-            filedata = file.read()
-
-        # Replace the target string
-        filedata = filedata.replace('/path/to/vicuna/weights/', 'wangrongsheng/MiniGPT-4-LLaMA-7B')
-
-        # Write the file out again
-        with open('minigpt4/configs/models/minigpt4.yaml', 'w') as file:
-            file.write(filedata)
-
-        # Read in the file
-        with open('eval_configs/minigpt4_eval.yaml', 'r') as file:
-            filedata = file.read()
-
-        # Replace the target string
-        filedata = filedata.replace('/path/to/pretrained/ckpt/', 'prerained_minigpt4_7b.pth')
-
-        # Write the file out again
-        with open('eval_configs/minigpt4_eval.yaml', 'w') as file:
-            file.write(filedata)
     
     def upload_img(self, gr_img, chat_state):
         chat_state = CONV_VISION.copy()
@@ -92,9 +92,9 @@ class MiniGPT4(HEMMModel):
         # print(llm_message)
         return llm_message, chat_state, img_list
     
-    def get_answer(self, image_path, question):
-        chat_state, img_list = self.upload_img(image_path, None)
-        chat_state = self.ask_message(question, chat_state)
+    def generate(self, text, image):
+        chat_state, img_list = self.upload_img(image, None)
+        chat_state = self.ask_message(text, chat_state)
         answer, chat_state, img_list = self.answer_question(chat_state, img_list, 1, 1)
         return answer
 

@@ -11,6 +11,7 @@ import random
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.memotion_prompt import MemotionPrompt
+from hemm.utils.common_utils import shell_command
 
 class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -33,8 +34,8 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
 
     def load(self, kaggle_api_path):
         os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
-        subprocess.Popen('kaggle datasets download -d williamscott701/memotion-dataset-7k', shell=True)
-        subprocess.Popen('unzip archive.zip -d ./', shell=True)
+        shell_command('kaggle datasets download -d williamscott701/memotion-dataset-7k')
+        shell_command('unzip archive.zip -d ./')
 
     def evaluate_dataset(self,
                          model,
@@ -53,7 +54,7 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             gt_label = row['humour']
             ground_truth.append(self.choices.index(gt_label))
             text = self.get_prompt(caption)
-            output = self.model.generate(image_path, text)
+            output = self.model.generate(text, image_path)
             answer = self.model.answer_extractor(output, self.dataset_key)
             if answer:
                 predictions.append(answer)

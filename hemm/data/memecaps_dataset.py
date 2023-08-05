@@ -11,6 +11,7 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.memecaps_prompt import MemeCapsPrompt
+from hemm.utils.common_utils import shell_command
 
 class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -27,10 +28,10 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
         return prompt_text
 
     def load(self):
-        subprocess.Popen('gdown https://drive.google.com/uc?id=1o1IB6am0HdYS58CEOmmxra3WjJkrn-M1', shell=True)
-        subprocess.Popen('python -m wget https://raw.githubusercontent.com/eujhwang/meme-cap/main/data/memes-test.json', shell=True)
-        subprocess.Popen('unzip -d memes.zip ./', shell=True)
-
+        shell_command('gdown https://drive.google.com/uc?id=1o1IB6am0HdYS58CEOmmxra3WjJkrn-M1')
+        shell_command('python -m wget https://raw.githubusercontent.com/eujhwang/meme-cap/main/data/memes-test.json')
+        shell_command('unzip -d memes.zip ./')
+        
     def evaluate_dataset(self,
                          model,
                          metric,
@@ -49,7 +50,7 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
             gt_caption = data_dict["meme_captions"][0]
             text = self.get_prompt(title, image_desc)
             ground_truth.append(gt_caption)
-            output = self.model.generate(image_path, text)
+            output = self.model.generate(text, image_path)
             predictions.append(output)
         
         results = self.metric(ground_truth, predictions)

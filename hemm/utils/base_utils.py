@@ -1,5 +1,6 @@
-from hemm.metrics import accuracy_metric, bleu_metric
+import subprocess
 
+from hemm.metrics import accuracy_metric, bleu_metric
 from hemm.models import blip2_model, minigpt4_model
 from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_dataset, memotion_dataset, memecaps_dataset
 

@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.newyorkercartoon_prompt import NewYorkerCartoonPrompt
+from hemm.utils.common_utils import shell_command
 
 class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -27,7 +28,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         self.csv_path_suffix_2 = 'lil-KLUCB'
 
     def load(self):
-        subprocess.Popen('git clone https://github.com/nextml/caption-contest-data', shell=True)
+        shell_command('git clone https://github.com/nextml/caption-contest-data')
 
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)
@@ -61,7 +62,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
             
             for i in range(len(captions)):
                 text = self.get_prompt(captions[i])
-                output = self.model.generate(img_path, text)
+                output = self.model.generate(text, img_path)
                 answer = self.model.answer_extractor(output, self.dataset_key)
 
                 if i == 0:
