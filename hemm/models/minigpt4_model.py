@@ -3,10 +3,10 @@ import subprocess
 import argparse
 import re
 
-from minigpt4.common.config import Config
-from minigpt4.common.dist_utils import get_rank
-from minigpt4.common.registry import registry
-from minigpt4.conversation.conversation import Chat, CONV_VISION
+from hemm.minigpt4.common.config import Config
+from hemm.minigpt4.common.dist_utils import get_rank
+from hemm.minigpt4.common.registry import registry
+from hemm.minigpt4.conversation.conversation import Chat, CONV_VISION
 
 from hemm.models.model import HEMMModel
 
@@ -39,12 +39,11 @@ class MiniGPT4(HEMMModel):
         self.chat = Chat(model, vis_processor, device='cuda:{}'.format(args.gpu_id))
     
     def load_weights(self):
-        if not os.path.exists('MiniGPT-4'):
-            subprocess.Popen('git clone https://github.com/Vision-CAIR/MiniGPT-4.git', shell=True)
+        # if not os.path.exists('MiniGPT-4'):
+        #     subprocess.Popen('git clone https://github.com/Vision-CAIR/MiniGPT-4.git', shell=True)
             
         subprocess.Popen('wget https://huggingface.co/wangrongsheng/MiniGPT4-7B/resolve/main/prerained_minigpt4_7b.pth', shell=True)
         subprocess.Popen('cd MiniGPT-4/', shell=True)
-        subprocess.Popen('pip install -qr ../hemm/utils/minigpt4_requirements.txt', shell=True)
         subprocess.Popen('cd ..', shell=True)
 
         # Read in the file

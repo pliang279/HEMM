@@ -6,7 +6,7 @@ import torch
 class HEMMMetric(abc.ABC):
     @abc.abstractmethod
     def compute(self,
-                ground_truth: Union[list, torch.Tensor],,
+                ground_truth: Union[list, torch.Tensor],
                 predictions: Union[list, torch.Tensor],
                 ) -> float:
         """

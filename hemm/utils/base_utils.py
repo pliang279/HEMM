@@ -1,12 +1,12 @@
 from hemm.metrics import accuracy_metric, bleu_metric
 
-from hemm.models import minigpt4, blip2
+from hemm.models import blip2_model, minigpt4_model
 from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_dataset, memotion_dataset, memecaps_dataset
 
 def load_model(model_key):
     model_dict = {
-        'minigpt4': minigpt4.MiniGPT4(),
-        'blip2':blip2.BLIP2(model_type='pretrain_flant5xxl')
+        'minigpt4': minigpt4_model.MiniGPT4(),
+        'blip2':blip2_model.BLIP2(model_type='pretrain_flant5xxl')
     }
     return model_dict[model_key]
 
