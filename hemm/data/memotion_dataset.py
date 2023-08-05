@@ -15,8 +15,8 @@ from hemm.utils.common_utils import shell_command
 
 class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 data_path = './memotion_dataset_7k/labels.xlsx',
-                 image_dir = './memotion_dataset_7k/images',
+                 data_path = 'memotion-dataset-7k/memotion_dataset_7k/labels.xlsx',
+                 image_dir = 'memotion-dataset-7k/memotion_dataset_7k/images',
                  kaggle_api_path = None
                  ):
         super().__init__()
@@ -34,8 +34,10 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
 
     def load(self, kaggle_api_path):
         os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
-        shell_command('kaggle datasets download -d williamscott701/memotion-dataset-7k')
-        shell_command('unzip archive.zip -d ./')
+        if not os.path.exists('memotion-dataset-7k.zip'):
+          shell_command('kaggle datasets download -d williamscott701/memotion-dataset-7k')
+        if not os.path.exists('memotion-dataset-7k'):
+          shell_command('unzip memotion-dataset-7k.zip -d memotion-dataset-7k')
 
     def evaluate_dataset(self,
                          model,

@@ -12,7 +12,7 @@ from hemm.utils.common_utils import shell_command
 
 class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset_dir = './',
+                 dataset_dir = 'hateful_memes',
                  evaluate_path = 'dev.jsonl',
                  kaggle_api_path = None
                  ):
@@ -27,8 +27,10 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
     
     def load(self, kaggle_api_path):
         os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
-        shell_command('kaggle datasets download -d parthplc/facebook-hateful-meme-dataset')
-        shell_command('unzip archive.zip -d ./')
+        if not os.path.exists('facebook-hateful-meme-dataset.zip'):
+          shell_command('kaggle datasets download -d parthplc/facebook-hateful-meme-dataset')
+        if not os.path.exists('hateful_memes'):
+          shell_command('unzip facebook-hateful-meme-dataset.zip -d hateful_memes/')
 
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)
