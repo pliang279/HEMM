@@ -5,87 +5,71 @@ from PIL import Image
 import requests
 import torch
 from datasets import load_dataset
+from tqdm import tqdm
+import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 from hemm.utils.evaluator_mixin import EvaluatorMixin
 from hemm.prompts.scienceqa_prompt import ScienceQAPrompt
 
-
-class ScienceQAPTDataset(torch.utils.data.Dataset):
+class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset,
-                 image_processor,
-                 text_processor,
-                 prompt,
-                 device,
+                 dataset_dir,
                  ):
-        self.dataset = dataset
-        self.image_processor = image_processor
-        self.text_processor = text_processor
-        self.device = device
-        self.prompt = prompt
-
-    def __getitem__(self, index):
-        question_s = self.dataset[index]['question']
-        choices = self.dataset[index]['choices']
-        lecture = self.dataset[index]['lecture']
-        image_url = self.dataset[index]['image']
-        context = self.dataset[index]['hint']
-        choice_label = choices[self.dataset[index]['answer']]
-        solution_label = self.dataset[index]['solution']
-
-        img = self.image_processor(image_url)
-        choice_label = self.text_processor(choice_label)
-        solution_label = self.text_processor(solution_label)
-
-        prompt_text = self.get_prompt(question_s, choices, lecture, context)
-        text = self.text_processor(prompt_text)
-        return {
-            'image': img,
-            'text': text,
-            'choice_label': choice_label,
-            'solution_label': solution_label,
-        }
-
+        super().__init__()
+        self.dataset_key = 'scienceqa'
+        self.dataset_dir = dataset_dir
+        self.prompt = ScienceQAPrompt()
+    
     def get_prompt(self, question_s, choices, lecture, context) -> str:
         prompt_text = self.prompt.format_prompt(question_s, choices, lecture, context)
         return prompt_text
 
-    def __len__(self):
-        return len(self.dataset)
-
-
-class ScienceQADatasetEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
-    def __init__(self,
-                 dataset_dir,
-                 model,
-                 text_processor,
-                 image_processor,
-                 device,
-                 batch_size,
-                 shuffle_dataset,
-                 output_file_path,
-                 split
-                 ):
-        super().__init__(dataset_dir)
-
-        self.dataset_dir = dataset_dir
-        self.model = model
-        self.text_processor = text_processor
-        self.image_processor = image_processor
-        self.device = device
-        self.batch_size = batch_size
-        self.shuffle_dataset = shuffle_dataset
-        self.output_file_path = output_file_path
-        self.split = split
-        self.prompt = ScienceQAPrompt()
+    def load(self):
+        self.dataset = load_dataset("derek-thomas/ScienceQA")
+        self.dataset = self.dataset['test']
 
     def evaluate_dataset(self,
-                         metrics: List[HEMMMetric],
+                         model,
+                         metric,
                          ) -> None:
-        dataset = load_dataset(self.dataset_dir)
-        pt_dataset = ScienceQAPTDataset(dataset[self.split], self.image_processor, self.text_processor, self.prompt,
-                                        self.device)
-        loader = torch.utils.data.DataLoader(pt_dataset, batch_size=self.batch_size, shuffle=self.shuffle_dataset)
-        self.evaluate(self.model, loader, self.output_file_path, modalities=['img', 'text'])
+        
+        self.load()
+        self.metric = metric
+        self.model = model
+        predictions = []
+        ground_truth = []
+        for item in tqdm(self.dataset, total=len(self.dataset)):
+            if not item['image']:
+                continue
+            question_s = item['question']
+            choices = item['choices']
+            lecture = item['lecture']
+            image_url = item['image']
+            context = item['hint']
+            ground_truth.append(['answer'])
+            question = self.get_prompt(question_s,
+                                       choices,
+                                       lecture,
+                                       context
+                                       )
+            for ind, choice in enumerate(choices):
+                curr_choice_str = str(ind+1) + ') ' + choice
+                question = question + curr_choice_str + '\n'
+            question += '\n'
+            with open("current_image.jpg", 'wb') as f:
+                # f.write(image_url)
+                image_url.save(f)
+                image_path = "current_image.jpg"
+            
+            ans = self.model.generate(question, image_path)
+            number = self.model.answer_extractor(ans, self.dataset_key)
+            if number:
+                predictions.append(number)
+            else:
+                random_item = random.choice(list(range(0, len(choices))))
+            predictions.append(random_item)
+        
+        results = self.metric.compute(ground_truth, predictions)
+        return results

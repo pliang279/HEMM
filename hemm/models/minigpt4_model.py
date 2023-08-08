@@ -99,12 +99,12 @@ class MiniGPT4(HEMMModel):
         return answer
 
     def answer_extractor(self, text, dataset_key):
-        if dataset_key == 'hateful_memes' or 'newyorkercartoon':
+        if dataset_key == 'hateful_memes' or dataset_key =='newyorkercartoon' or dataset_key =='irfl':
             text = text[:3]
             text = text.lower().strip()
             text = ''.join(filter(str.isalpha, text.lower()))
             return text
-        elif dataset_key == 'memotion':
+        elif dataset_key == 'memotion' or dataset_key == 'scienceqa':
             match = re.search(r"\b\d\b", text)
             if match:
                 first_number = int(match.group())

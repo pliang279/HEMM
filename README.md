@@ -57,6 +57,8 @@ newyorkercartoon
 memecaps
 memotion
 nocaps
+irfl
+scienceqa
 ```
 
 To evaluate these datasets, metrics are specified in the ```hemm.metrics``` directory

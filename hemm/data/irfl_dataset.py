@@ -7,81 +7,64 @@ import torch
 from datasets import load_dataset
 import pandas as pd
 import ast
+from tqdm import tqdm
 
 from hemm.data.dataset import HEMMDatasetEvaluator
-from hemm.metrics.metric import HEMMMetric
-from hemm.utils.evaluator_mixin import EvaluatorMixin
 from hemm.prompts.irfl_prompt import IRFLPrompt
+from hemm.utils.common_utils import shell_command
 
-
-class IRFLPTDataset(torch.utils.data.Dataset):
+class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset,
-                 image_processor,
-                 text_processor,
-                 prompt,
-                 device,
+                 csv_path = 'IRFL/assets/tasks/simile_understanding_task.csv',
                  ):
-        self.dataset = dataset
-        self.image_processor = image_processor
-        self.text_processor = text_processor
-        self.device = device
-        self.prompt = prompt
-
-    def __getitem__(self, index):
-        row = self.dataset.iloc[index]
-        phrase = row['phrase']
-        img_path = row['image']
-        raw_image = Image.open(img_path).convert('RGB')
-        img = self.image_processor(raw_image)
-        label = row['label']
-
-        prompt_text = self.get_prompt(phrase)
-        text = self.text_processor(prompt_text)
-        return {
-            'image': img,
-            'text': text,
-            'label': label,
-        }
-
-    def get_prompt(self) -> str:
-        prompt_text = self.prompt.format_prompt()
-        return prompt_text
-
-    def __len__(self):
-        return len(self.dataset)
-
-
-class IRFLDatasetEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
-    def __init__(self,
-                 dataset_dir,
-                 model,
-                 text_processor,
-                 image_processor,
-                 device,
-                 batch_size,
-                 shuffle_dataset,
-                 output_file_path,
-                 split,
-                 ):
-        super().__init__(dataset_dir)
-
-        self.dataset_dir = dataset_dir
-        self.model = model
-        self.text_processor = text_processor
-        self.image_processor = image_processor
-        self.device = device
-        self.batch_size = batch_size
-        self.shuffle_dataset = shuffle_dataset
-        self.output_file_path = output_file_path
-        self.split = split
+        super().__init__()
+        self.dataset_key = 'irfl'
+        self.csv_path = csv_path
         self.prompt = IRFLPrompt()
-        
+
+    def load(self):
+        shell_command('git clone https://github.com/irfl-dataset/IRFL')
+
+    def get_prompt(self, text) -> str:
+        prompt_text = self.prompt.format_prompt(text)
+        return prompt_text    
 
     def evaluate_dataset(self,
-                         metrics: List[HEMMMetric],
+                         metric,
+                         model,
                          ) -> None:
-        dataset = os.listdir(self.dataset_dir)
-        pt_dataset = IRFLPTDataset(dataset, self.image_processor, self.text_processor, self.prompt, self.device)
-        loader = torch.utils.data.DataLoader(pt_dataset, batch_size=self.batch_size, shuffle=self.shuffle_dataset)
-        self.evaluate(self.model, loader, self.output_file_path, modalities=['img', 'text'])
+
+        self.load()
+        self.metric = metric
+        self.model = model
+        df = pd.read_csv(self.csv_path)
+        predictions = []
+        for index, row in tqdm(df.iterrows(), total=len(df)):
+            try:
+                phrase = row['phrase']
+                distractors = ast.literal_eval(row['distractors'])
+                question = self.get_prompt(phrase)
+                answer_image = ast.literal_eval(row['answer'])[0]
+                generated_answers = []
+                distractors.append(answer_image)
+                for distractor in distractors:
+                    response = requests.get(distractor)
+                if response.status_code == 200:
+                    with open("current_image.jpg", 'wb') as f:
+                        f.write(response.content)
+                image_path = "current_image.jpg"
+                answer = self.model.generate(question, image_path)
+                answer = self.model.answer_extractor(answer, self.dataset_key)
+                generated_answers.append(answer)
+
+                if generated_answers[-1] == 'yes':
+                    if generated_answers[0] == 'no' and generated_answers[1] == 'no' and generated_answers[2] == 'no':
+                        predictions.append(1)
+                    else:
+                        predictions.append(0)
+                else:
+                    predictions.append(0)
+            except Exception as e:
+                continue
+        
+        return sum(predictions) / len(predictions)
