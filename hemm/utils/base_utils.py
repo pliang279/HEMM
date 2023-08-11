@@ -2,7 +2,7 @@ import subprocess
 
 from hemm.metrics import accuracy_metric, bleu_metric
 from hemm.models import blip2_model, minigpt4_model
-from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_dataset, memotion_dataset, memecaps_dataset, irfl_dataset, scienceQA_dataset
+from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_dataset, memotion_dataset, memecaps_dataset, irfl_dataset, scienceQA_dataset, vqa_dataset
 
 def load_model(model_key):
     model_dict = {
@@ -30,6 +30,7 @@ def load_dataset_evaluator(dataset_key, kaggle_api_path=None):
         ),
         'memecaps':memecaps_dataset.MemeCapsDatasetEvaluator(),
         'irfl':irfl_dataset.IRFLDatasetEvaluator(),
-        'scienceqa':scienceQA_dataset.ScienceQADatasetEvaluator()
+        'scienceqa':scienceQA_dataset.ScienceQADatasetEvaluator(),
+        'vcr': vqa_dataset.VQADatasetEvaluator()
     }
     return dataset_dict[dataset_key]
