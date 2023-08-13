@@ -5,76 +5,74 @@ from typing import Optional, Union, List
 from PIL import Image
 import torch
 from torch.utils.data import Dataset, DataLoader
-# from hemm.data.dataset import HEMMDatasetEvaluator
-# from hemm.metrics.metric import HEMMMetric
-# from hemm.utils.evaluator_mixin import EvaluatorMixin
+from tqdm import tqdm
+from hemm.data.dataset import HEMMDatasetEvaluator
+from hemm.utils.common_utils import shell_command
+from hemm.prompts.okqvqa_prompt import OKVQAPrompt
 
-class OKVQA(Dataset):
+class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 image_dir,
-                 annotation_file,
-                 question_file,
-                 device,
+                 dataset_dir='./',
                  ):
-        self.image_dir = image_dir
-        self.annotations = json.load(open(annotation_file, "r"))
-        self.questions = json.load(open(question_file, "r"))
-        self.device = device
+        super().__init__()
+        self.dataset_dir = dataset_dir
+        self.dataset_key = 'okvqa'
+        self.prompt = OKVQAPrompt()
 
-        self.qid_to_q = {}
-        for ques in self.questions["questions"]:
-            self.qid_to_q[ques["question_id"]] = ques["question"]
+    def load(self):
+        if not os.path.exists('val2014.zip'):
+          shell_command('wget http://images.cocodataset.org/zips/val2014.zip')
+        if not os.path.exists('mscoco_val2014_annotations.json.zip'):
+          shell_command('wget https://okvqa.allenai.org/static/data/mscoco_val2014_annotations.json.zip')
+        if not os.path.exists('OpenEnded_mscoco_val2014_questions.json.zip'):
+          shell_command('wget https://okvqa.allenai.org/static/data/OpenEnded_mscoco_val2014_questions.json.zip')
+        if not os.path.exists('mscoco_val2014_annotations.json'):
+          shell_command('unzip mscoco_val2014_annotations.json.zip -d ./')
+        if not os.path.exists('OpenEnded_mscoco_val2014_questions.json'):
+          shell_command('unzip OpenEnded_mscoco_val2014_questions.json.zip -d ./')
+        if not os.path.exists('val2014'):
+          shell_command('unzip val2014.zip -d ./')
 
-        self.images = []
-        self.qs = []
-        self.gts = []
+    def get_prompt(self, question):
+        return self.prompt.format_prompt(question)
 
-        for ann in self.annotations["annotations"]:
-            self.images.append(ann["image_id"])
-            self.qs.append(self.qid_to_q[ann["question_id"]])
-            self.gts.append(ann)
+    def evaluate_dataset(self,
+                         model,
+                         metric,
+                         ) -> None:
+        self.load()
+        self.model = model
+        self.metric = metric
+
+        image_dir = os.path.join(self.dataset_dir, 'val2014')        
+        annotation_file = os.path.join(self.dataset_dir, 'mscoco_val2014_annotations.json')
+        question_file = os.path.join(self.dataset_dir, 'OpenEnded_mscoco_val2014_questions.json')
+
+        annotations = json.load(open(annotation_file, "r"))
+        questions = json.load(open(question_file, "r"))
+
+        qid_to_q = {}
+        for ques in questions["questions"]:
+            qid_to_q[ques["question_id"]] = ques["question"]
         
-    def __getitem__(self, index):
-        image_id = self.images[index]
-        img =  np.asarray(Image.open(os.path.join(self.image_dir, f"COCO_val2014_000000{image_id}.jpg")))
-        prompt = f"Question: {self.qs[index]}"
-        gt = self.gts[index]
-        return {
-            'image': img,
-            'prompt': prompt,
-            'gt': gt,
-        }
+        images = []
+        qs = []
+        ground_truth = []
 
-    def __len__(self):
-        return len(self.images)
-
-# class OKVQAEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
-#     def __init__(self,
-#                  dataset_dir,
-#                  model,
-#                  evaluate_path,
-#                  device,
-#                  batch_size,
-#                  shuffle_dataset,
-#                  output_file_path
-#                  ):
-#         super().__init__(dataset_dir)
-#         self.dataset_dir = dataset_dir
-#         self.model = model
-#         self.evaluate_path = evaluate_path
-#         self.device = device
-#         self.batch_size = batch_size
-#         self.shuffle_dataset = shuffle_dataset
-#         self.output_file_path = output_file_path
-
-#     def evaluate_dataset(self,
-#                          metrics: List[HEMMMetric],
-#                          ) -> None:
-
-#         image_dir = os.path.join(self.dataset_dir, 'val2014')        
-#         annotation_file = os.path.join(self.dataset_dir, 'mscoco_val2014_annotations.json')
-#         question_file = os.path.join(self.dataset_dir, 'OpenEnded_mscoco_val2014_questions.json')
-
-#         pt_dataset = OKVQA(image_dir, annotation_file, question_file, self.device)
-#         loader = DataLoader(pt_dataset, batch_size=self.batch_size, shuffle=self.shuffle_dataset)
-#         self.evaluate(self.model, loader, self.output_file_path, modalities=['img','text'])
+        for ann in annotations["annotations"]:
+            images.append(ann["image_id"])
+            qs.append(qid_to_q[ann["question_id"]])
+            ground_truth.append(ann)
+        
+        acc = []
+        for i in tqdm(range(len(images)), total=len(images)):
+            image_path = os.path.join(image_dir, f"COCO_val2014_000000{images[i]}.jpg")
+            text = self.get_prompt(qs[i])
+            output = self.model.generate(text, image_path)
+            ground_truth_answer = ground_truth[i]['answers'][0]['raw_answer']
+            if output == ground_truth_answer:
+                acc.append(1)
+            else:
+                acc.append(0)
+        
+        return sum(acc)/len(acc)

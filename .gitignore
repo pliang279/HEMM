@@ -6,6 +6,7 @@ try.py
 # C extensions
 *.so
 .idea
+*.jsonl
 
 # Distribution / packaging
 .Python

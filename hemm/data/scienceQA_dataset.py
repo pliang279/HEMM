@@ -10,16 +10,13 @@ import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
-from hemm.utils.evaluator_mixin import EvaluatorMixin
 from hemm.prompts.scienceqa_prompt import ScienceQAPrompt
 
 class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset_dir,
                  ):
         super().__init__()
         self.dataset_key = 'scienceqa'
-        self.dataset_dir = dataset_dir
         self.prompt = ScienceQAPrompt()
     
     def get_prompt(self, question_s, choices, lecture, context) -> str:
