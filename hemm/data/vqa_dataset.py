@@ -11,7 +11,7 @@ from hemm.prompts.vqa_prompt import VQAPrompt
 
 class VQADatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset_dir
+                 dataset_dir='./'
                  ):
         super().__init__()
         self.dataset_dir = dataset_dir

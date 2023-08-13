@@ -12,7 +12,7 @@ from hemm.prompts.okqvqa_prompt import OKVQAPrompt
 
 class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset_dir,
+                 dataset_dir='./',
                  ):
         super().__init__()
         self.dataset_dir = dataset_dir
@@ -20,16 +20,21 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
         self.prompt = OKVQAPrompt()
 
     def load(self):
-        shell_command('wget http://images.cocodataset.org/zips/val2014.zip')
-        shell_command('wget https://okvqa.allenai.org/static/data/mscoco_val2014_annotations.json.zip')
-        shell_command('wget https://okvqa.allenai.org/static/data/OpenEnded_mscoco_val2014_questions.json.zip')
-        shell_command('unzip mscoco_val2014_annotations.json.zip -d ./')
-        shell_command('unzip OpenEnded_mscoco_val2014_questions.json.zip -d ./')
-        shell_command('unzip val2014.zip -d ./')
+        if not os.path.exists('val2014.zip'):
+          shell_command('wget http://images.cocodataset.org/zips/val2014.zip')
+        if not os.path.exists('mscoco_val2014_annotations.json.zip'):
+          shell_command('wget https://okvqa.allenai.org/static/data/mscoco_val2014_annotations.json.zip')
+        if not os.path.exists('OpenEnded_mscoco_val2014_questions.json.zip'):
+          shell_command('wget https://okvqa.allenai.org/static/data/OpenEnded_mscoco_val2014_questions.json.zip')
+        if not os.path.exists('mscoco_val2014_annotations.json'):
+          shell_command('unzip mscoco_val2014_annotations.json.zip -d ./')
+        if not os.path.exists('OpenEnded_mscoco_val2014_questions.json'):
+          shell_command('unzip OpenEnded_mscoco_val2014_questions.json.zip -d ./')
+        if not os.path.exists('val2014'):
+          shell_command('unzip val2014.zip -d ./')
 
     def get_prompt(self, question):
-        self.prompt.format_prompt(question)
-        return self.prompt
+        return self.prompt.format_prompt(question)
 
     def evaluate_dataset(self,
                          model,

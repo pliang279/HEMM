@@ -13,20 +13,22 @@ from hemm.utils.common_utils import shell_command
 
 class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 	def __init__(self,
-				 dataset_dir,
 				):
 		super().__init__()
-		self.dataset_dir = dataset_dir
-		self.annotation_file = None 
-		self.image_dir = None
+		self.annotation_file = 'vcr_annotations/'
+		self.image_dir = 'vcr_images/'
 		self.prompt = VCRPrompt()
 		self.dataset_key = 'vcr'
 
 	def load(self):
-		shell_command('wget https://s3.us-west-2.amazonaws.com/ai2-rowanz/vcr1images.zip')
-		shell_command('wget https://s3.us-west-2.amazonaws.com/ai2-rowanz/vcr1annots.zip')
-		shell_command('unzip vcr1annots.zip -d ./')
-		shell_command('unzip vcr1images.zip -d ./')
+		if not os.path.exists('vcr1images.zip'):
+			shell_command('wget https://s3.us-west-2.amazonaws.com/ai2-rowanz/vcr1images.zip')
+		if not os.path.exists('vcr1annots.zip'):
+			shell_command('wget https://s3.us-west-2.amazonaws.com/ai2-rowanz/vcr1annots.zip')
+		if not os.path.exists('vcr_annotations'):
+			shell_command('unzip vcr1annots.zip -d vcr_annotations')
+		if not os.path.exists('vcr_images'):
+			shell_command('unzip vcr1images.zip -d vcr_images')
 
 	def get_prompt(self, question, answer_choices, rationale_choices=None, answer_label=None):
 		prompt, rationale_prompt = self.prompt.format_prompt(question, answer_choices, rationale_choices, answer_label)

@@ -7,7 +7,7 @@ from datasets import load_dataset, concatenate_datasets
 from torch.utils.data import Dataset, DataLoader
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
-from hemm.utils.evaluator_mixin import EvaluatorMixin
+# from hemm.utils.evaluator_mixin import EvaluatorMixin
 
 class WinogroundVQA(Dataset):
     def __init__(self,
