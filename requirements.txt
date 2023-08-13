@@ -53,3 +53,4 @@ gdown
 kaggle
 evaluate
 datasets
+opencv-python

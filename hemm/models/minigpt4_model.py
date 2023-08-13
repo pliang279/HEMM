@@ -104,7 +104,7 @@ class MiniGPT4(HEMMModel):
             text = text.lower().strip()
             text = ''.join(filter(str.isalpha, text.lower()))
             return text
-        elif dataset_key == 'memotion' or dataset_key == 'scienceqa':
+        elif dataset_key == 'memotion' or dataset_key == 'scienceqa' or dataset_key == 'vcr':
             match = re.search(r"\b\d\b", text)
             if match:
                 first_number = int(match.group())
