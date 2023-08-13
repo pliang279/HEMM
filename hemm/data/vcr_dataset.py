@@ -10,13 +10,14 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.vcr_prompt import VCRPrompt
 from hemm.utils.common_utils import shell_command
+from ast import literal_eval
 
 class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 	def __init__(self,
 				):
 		super().__init__()
-		self.annotation_file = 'vcr_annotations/'
-		self.image_dir = 'vcr_images/'
+		self.annotation_file = 'vcr_annotations/val.jsonl'
+		self.image_dir = 'vcr_images/vcr1images/'
 		self.prompt = VCRPrompt()
 		self.dataset_key = 'vcr'
 
@@ -31,8 +32,8 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			shell_command('unzip vcr1images.zip -d vcr_images')
 
 	def get_prompt(self, question, answer_choices, rationale_choices=None, answer_label=None):
-		prompt, rationale_prompt = self.prompt.format_prompt(question, answer_choices, rationale_choices, answer_label)
-		return prompt, rationale_prompt
+		prompt = self.prompt.format_prompt(question, answer_choices, rationale_choices, answer_label)
+		return prompt
 	
 	def draw_segments(self, image, segments, color=(0, 0, 255), thickness=2):
 		for segment in segments:
@@ -86,8 +87,8 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 
 		predictions = []
 		ground_truth = []
-		for i in tqdm(range(len(self.annotation_file)), total=len(len(self.annotation_file))):
-			ann = self.annotation_file[i]
+		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
+			ann = literal_eval(self.annotations[i])
 			question = self.fix_tokenization(ann["question"], ann["objects"])
 			new_answer_choices = []
 			for ch in ann["answer_choices"]:
@@ -96,7 +97,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			for ch in ann["rationale_choices"]:
 				new_rationale_choices.append(self.fix_tokenization(ch, ann["objects"]))
 			
-			prompt, rationale_prompt = self.get_prompt(question, new_answer_choices, new_rationale_choices, ann["answer_label"])
+			prompt = self.get_prompt(question, new_answer_choices, new_rationale_choices, ann["answer_label"])
 			img = np.asarray(Image.open(os.path.join(self.image_dir, ann['img_fn'])).convert("RGB"))
 			metadata = json.load(open(os.path.join(self.image_dir, ann['metadata_fn'])))
 
@@ -111,6 +112,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			self.draw_segments(img, segments)
 
 			image_path = './current_image.jpg'
+			img = Image.fromarray(img)
 			img = img.save(image_path)
 			output = self.model.generate(prompt, image_path)
 			answer = self.model.answer_extractor(output, self.dataset_key)

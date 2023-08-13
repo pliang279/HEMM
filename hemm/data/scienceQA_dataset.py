@@ -10,7 +10,6 @@ import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
-from hemm.utils.evaluator_mixin import EvaluatorMixin
 from hemm.prompts.scienceqa_prompt import ScienceQAPrompt
 
 class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):

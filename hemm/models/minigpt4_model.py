@@ -32,7 +32,8 @@ class MiniGPT4(HEMMModel):
     def load_weights(self):
         # if not os.path.exists('MiniGPT-4'):
         #     subprocess.Popen('git clone https://github.com/Vision-CAIR/MiniGPT-4.git', shell=True)
-        shell_command('wget https://huggingface.co/wangrongsheng/MiniGPT4-7B/resolve/main/prerained_minigpt4_7b.pth')
+        if not os.path.exists('prerained_minigpt4_7b.pth'):
+            shell_command('wget https://huggingface.co/wangrongsheng/MiniGPT4-7B/resolve/main/prerained_minigpt4_7b.pth')
 
         # Read in the file
         with open('hemm/models/minigpt4/configs/models/minigpt4.yaml', 'r') as file:
