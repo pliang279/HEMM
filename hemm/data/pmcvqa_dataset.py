@@ -22,13 +22,16 @@ class PMCVQADatasetEvaluator(HEMMDatasetEvaluator):
         self.prompt = PMCVQAPrompt()
 
     def load(self):
-      shell_command('wget https://huggingface.co/datasets/xmcmic/PMC-VQA/resolve/main/images.zip')
-      shell_command('unzip images.zip -d pmcvqa/')
-      shell_command('wget https://huggingface.co/datasets/xmcmic/PMC-VQA/resolve/main/test_clean.csv')
+      if not os.path.exists('images.zip'):
+        shell_command('wget https://huggingface.co/datasets/xmcmic/PMC-VQA/resolve/main/images.zip')
+      if not os.path.exists('pmcvqa'):
+        shell_command('unzip images.zip -d pmcvqa/')
+      if not os.path.exists('test_clean.csv'):
+        shell_command('wget https://huggingface.co/datasets/xmcmic/PMC-VQA/resolve/main/test_clean.csv')
       
 
-    def get_prompt(self, text):
-        prompt_text = self.prompt.format_prompt(text)
+    def get_prompt(self, question, choice_a, choice_b, choice_c, choice_d):
+        prompt_text = self.prompt.format_prompt(question, choice_a, choice_b, choice_c, choice_d)
         return prompt_text
 
     def evaluate_dataset(self,
@@ -44,7 +47,8 @@ class PMCVQADatasetEvaluator(HEMMDatasetEvaluator):
 
         self.dataset = pd.read_csv(self.annotation_file)
 
-        acc = []
+        ground_truth = []
+        predictions = []
         for index, row in self.dataset.iterrows():
             question = row['Question']
             image_path = os.path.join(self.image_dir, 'images', row['Figure_path'])
@@ -52,8 +56,8 @@ class PMCVQADatasetEvaluator(HEMMDatasetEvaluator):
             choice_a, choice_b, choice_c, choice_d = row['Choice A'], row['Choice B'], row['Choice C'], row['Choice D']
             text = self.get_prompt(question, choice_a, choice_b, choice_c, choice_d)
             output = self.model.generate(text, image_path)
-            if output == ground_truth_answer:
-                acc.append(1)
-            else:
-                acc.append(0)
-        return sum(acc) / len(acc)
+            ground_truth.append(ground_truth_answer)
+            predictions.append(output)
+
+        results = self.metric.compute(ground_truth, predictions)
+        return results

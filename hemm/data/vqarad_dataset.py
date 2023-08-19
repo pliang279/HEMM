@@ -36,7 +36,8 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
         self.model = model
         self.metric = metric
         
-        acc = []
+        predictions = []
+        ground_truth = []
         for data_dict in tqdm(self.dataset, total=len(self.dataset)):
             question = data_dict['question']
             image = data_dict['image']
@@ -47,9 +48,8 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth_answer = data_dict['answer']
             text = self.get_prompt(question)
             output = self.model.generate(text, image_path)
-            if output == ground_truth_answer:
-                acc.append(1)
-            else:
-                acc.append(0)
+            predictions.append(output)
+            ground_truth.append(ground_truth_answer)
         
-        return sum(acc) / len(acc)
+        results = self.metric.compute(ground_truth, predictions)
+        return results

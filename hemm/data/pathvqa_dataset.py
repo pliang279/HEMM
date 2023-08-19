@@ -41,15 +41,16 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
         annotation_path = os.path.join('pathvqa_images','pvqa','qas','test','test_qa.pkl')
         annotation_file = pickle.load(open(annotation_path, 'rb'))
         
-        acc = []
+        ground_truth = []
+        predictions = []
         for index, data_dict in tqdm(enumerate(annotation_file), total=len(annotation_file)):
-            image_path = os.path.join(images_dir, data_dict['image'], '.jpg')
+            image_path = os.path.join(images_dir, data_dict['image'] + '.jpg')
             question = data_dict['question']
             ground_truth_answer = data_dict["answer"]
             text = self.get_prompt(question)
             output = self.model.generate(text, image_path)
-            if output == ground_truth_answer:
-                acc.append(1)
-            else:
-                acc.append(0)
-        return sum(acc) / len(acc)
+            predictions.append(output)
+            ground_truth.append(ground_truth_answer)
+        
+        results = self.metric.compute(ground_truth, predictions)
+        return results

@@ -48,7 +48,9 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
         image_dir = 'gqa_images/images'
         annotation_file = json.load(open(os.path.join('gqa_scene_graphs', 'val_sceneGraphs.json'), 'r'))
         question_file = json.load(open(os.path.join('gqa_questions', 'val_all_questions.json'), 'r'))
-        acc = []
+        
+        ground_truth = []
+        predictions = []
         for data_index in tqdm(question_file, total=len(question_file)):
             # print(question_file[data_index])
             question = question_file[data_index]['question']
@@ -56,9 +58,8 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth_answer = question_file[data_index]['answer']
             text = self.get_prompt(question)
             output = self.model.generate(text, image_path)
-            if output == ground_truth_answer:
-                acc.append(1)
-            else:
-                acc.append(0)
+            predictions.append(output)
+            ground_truth.append(ground_truth_answer)
         
-        return sum(acc) / len(acc) 
+        results = self.metric.compute(ground_truth, predictions)
+        return results
