@@ -54,3 +54,4 @@ kaggle
 evaluate
 datasets
 opencv-python
+promptcap

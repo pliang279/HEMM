@@ -7,7 +7,6 @@ from datasets import load_dataset, concatenate_datasets
 from torch.utils.data import Dataset, DataLoader
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
-# from hemm.utils.evaluator_mixin import EvaluatorMixin
 
 class WinogroundVQA(Dataset):
     def __init__(self,
@@ -37,7 +36,7 @@ class WinogroundVQA(Dataset):
     def __len__(self):
         return len(self.images)
 
-class WinogroundVQAEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
+class WinogroundVQAEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
                  dataset_dir,
                  model,
