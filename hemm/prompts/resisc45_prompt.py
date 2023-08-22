@@ -5,7 +5,9 @@ class Resisc45Prompt:
          'meadow', 'beach', 'sparse_residential', 'desert', 'terrace', 'palace', 'bridge', 'commercial_area', 'stadium', 'runway', 'lake', 'railway', 
          'tennis_court', 'ship', 'intersection', 'river', 'freeway', 'airplane', 'industrial_area', 'mountain', 'storage_tank', 'cloud', 'roundabout', 
          'wetland', 'mobile_home_park', 'island', 'harbor', 'railway_station', 'medium_residential', 'sea_ice', 'thermal_power_station', 'snowberg', 
-         'circular_farmland', 'airport', 'dense_residential', 'rectangular_farmland' """
-
+         'circular_farmland', 'airport', 'dense_residential', 'rectangular_farmland'.
+          Choose a class from the above classes. 
+        """
+         
     def format_prompt(self):
         return self.prompt

@@ -45,7 +45,7 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
         self.metric = metric
         label_path = os.path.join(self.dataset_dir, 'data', self.evaluate_path)
         json_list = list(open(label_path, 'r'))
-        image_dir = os.path.join(self.dataset_dir, 'data', 'img')
+        image_dir = os.path.join(self.dataset_dir, 'data')
 
         ground_truth = []
         predictions = []
