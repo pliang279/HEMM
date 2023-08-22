@@ -1,6 +1,6 @@
 import subprocess
 
-from hemm.metrics import accuracy_metric, bleu_metric
+from hemm.metrics import accuracy_metric, bleu_metric, bertscore_metric
 from hemm.models import blip2_model, minigpt4_model
 from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_dataset, memotion_dataset, memecaps_dataset, irfl_dataset, scienceQA_dataset, vqa_dataset,vcr_dataset, ok_vqa_dataset, gqa_dataset, vqarad_dataset, pmcvqa_dataset, pathvqa_dataset, rsicd_dataset, ucmerced_dataset, resisc45_dataset
 
@@ -14,7 +14,8 @@ def load_model(model_key):
 def load_metric(metric_key):
     metric_dict = {
         'accuracy':accuracy_metric.AccuracyMetric(),
-        'bleu_score':bleu_metric.BleuMetric()
+        'bleu_score':bleu_metric.BleuMetric(),
+        'bertscore':bertscore_metric.BertScoreMetric()
     }
     return metric_dict[metric_key]
 

@@ -2,7 +2,7 @@ from hemm.metrics.metric import HEMMMetric
 
 import evaluate
 
-class BleuMetric(HEMMMetric):
+class BertScoreMetric(HEMMMetric):
     def compute(self, 
                        ground_truth, 
                        predictions):
