@@ -66,7 +66,7 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
                 predictions.append(number)
             else:
                 random_item = random.choice(list(range(0, len(choices))))
-            predictions.append(random_item)
+                predictions.append(random_item)
         
         results = self.metric.compute(ground_truth, predictions)
         return results
