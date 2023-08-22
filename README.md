@@ -63,11 +63,14 @@ vqa
 vcr
 gqa
 okvqa
+vqarad
+resisc45
+ucmerced
+pathvqa
 ```
 
 To evaluate these datasets, metrics are specified in the ```hemm.metrics``` directory
-For ```memecaps``` and ```nocaps``` dataset, ```bleu_score``` metric is used. All the other datasets use ```accuracy``` metric. 
-
+For ```memecaps``` and ```nocaps``` dataset, ```bleu_score``` or ```bertscore``` metric is used. All QA datasets use ```bertscore``` metric. Rest of the other datasets use ```accuracy``` metric. 
 -----------------------------------------------------------------------------------------
 
 To add new datasets, metrics and models, base class is provided in each of the modules ```hemm/models/model.py```, ```hemm/metrics/metric.py``` and ```hemm/data/dataset.py``` Inheriting these abstract classess will allow the user to contribute to HEMM.
