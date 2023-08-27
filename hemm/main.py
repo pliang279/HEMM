@@ -4,7 +4,7 @@ model_key = 'minigpt4'
 model = load_model(model_key)
 model.load_weights()
 
-dataset_name = 'hateful_memes'
+dataset_name = 'winogroundVQA'
 dataset_evaluator = load_dataset_evaluator(dataset_name)
 
 metric_name = 'accuracy'
