@@ -55,16 +55,16 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
         annotation_file = json.load(open(os.path.join('vqa_annotations', 'abstract_v002_val2015_annotations.json'), 'r'))
         question_file = json.load(open(os.path.join('vqa_questions', 'OpenEnded_abstract_v002_val2015_questions.json'), 'r'))
         
-        acc = []
+        ground_truth = []
+        predictions = []
         for data_dict in tqdm(question_file['questions'], total=len(question_file['questions'])):
             question = data_dict['question']
             image_path = os.path.join(image_dir, "abstract_v002_val2015_0000000{}".format(str(data_dict['image_id']))+'.png')
             ground_truth_answer = self.get_ground_truth_answer(annotation_file, data_dict['question_id'])
             text = self.get_prompt(question)
             output = self.model.generate(text, image_path)
-            if output == ground_truth_answer:
-                acc.append(1)
-            else:
-                acc.append(0)
+            predictions.append(output)
+            ground_truth.append(ground_truth_answer)
         
-        return sum(acc) / len(acc) 
+        results = self.metric.compute(ground_truth, predictions)
+        return results

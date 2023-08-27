@@ -64,15 +64,15 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
             qs.append(qid_to_q[ann["question_id"]])
             ground_truth.append(ann)
         
-        acc = []
+        predictions = []
+        ground_truth_list = []
         for i in tqdm(range(len(images)), total=len(images)):
             image_path = os.path.join(image_dir, f"COCO_val2014_000000{images[i]}.jpg")
             text = self.get_prompt(qs[i])
             output = self.model.generate(text, image_path)
             ground_truth_answer = ground_truth[i]['answers'][0]['raw_answer']
-            if output == ground_truth_answer:
-                acc.append(1)
-            else:
-                acc.append(0)
-        
-        return sum(acc)/len(acc)
+            ground_truth_list.append(ground_truth_answer)
+            predictions.append(output)
+
+        results = self.metric.compute(ground_truth_list, predictions)
+        return results

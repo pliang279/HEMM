@@ -54,3 +54,6 @@ kaggle
 evaluate
 datasets
 opencv-python
+promptcap
+bert_score
+openpyxl
