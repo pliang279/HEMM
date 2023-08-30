@@ -1,7 +1,11 @@
-from slake_dataset_batch import SlakeVQABatch
+from slake_dataset import SlakeVQA
 from torch.utils.data import DataLoader
+from lavis.models import load_model_and_preprocess
 
-dataset = SlakeVQABatch("./drive/MyDrive/Slake1.0/imgs", vis_processors,"./drive/MyDrive/Slake1.0/test.json", "cuda")
+model, vis_processors, _ = load_model_and_preprocess(
+    name="blip2_t5", model_type="pretrain_flant5xxl", is_eval=True, device=device
+)
+dataset = SlakeVQA("./drive/MyDrive/Slake1.0/imgs", vis_processors,"./drive/MyDrive/Slake1.0/test.json", "cuda")
 loader = DataLoader(dataset, batch_size=1)
 
 imgs = []
