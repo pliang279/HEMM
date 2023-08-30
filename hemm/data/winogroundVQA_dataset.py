@@ -55,7 +55,7 @@ class WinogroundVQAEvaluator(HEMMDatasetEvaluator):
         self.shuffle_dataset = shuffle_dataset
         self.output_file_path = output_file_path
 
-    def evaluate_dataset(self,
+    def evaluate(self,
                          metrics: List[HEMMMetric],
                          ) -> None:
 
@@ -64,4 +64,13 @@ class WinogroundVQAEvaluator(HEMMDatasetEvaluator):
 
         pt_dataset = WinogroundVQA(image_dir, questions_file, self.device)
         loader = DataLoader(pt_dataset, batch_size=self.batch_size, shuffle=self.shuffle_dataset)
-        self.evaluate(self.model, loader, self.output_file_path, modalities=['img','text'])
+
+        # This is the concrete implementation of the `evaluate` function.
+        self._evaluate(self.model, loader, self.output_file_path, modalities=['img','text'])
+
+    def _evaluate(self,
+                         model,
+                         loader,
+                         output_file_path,
+                         modalities=['img','text']) -> None:
+        pass
