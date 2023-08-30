@@ -10,6 +10,7 @@ from torch.utils.data import Dataset
 class SlakeVQA(Dataset):
 	def __init__(self,
 				 image_dir,
+				 vis_processor, 
 				 annotation_file,
 				 device,
 				 ):
@@ -20,6 +21,7 @@ class SlakeVQA(Dataset):
 			if ann["q_lang"] == "en" and ann["answer_type"] == "CLOSED":
 				self.annotation.append(ann)
 
+		self.vis_processor = vis_processor
 		self.device = device
 
 	def __getitem__(self, index):
@@ -30,7 +32,8 @@ class SlakeVQA(Dataset):
 		img_name = f"{self.image_dir}/{ann['img_name']}"
 
 		prompt = f"Answer the question in a single word, Question: {question}"
-		img = np.asarray(Image.open(img_name).convert("RGB"))
+		img = Image.open(img_name).convert("RGB")
+		img = self.vis_processor["eval"](img).to(self.device)
 
 		return {
 			"image": img, 
