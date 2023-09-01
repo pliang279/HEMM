@@ -122,7 +122,7 @@ class MiniGPT4(HEMMModel):
         # [conv.append_message(None, None) for conv in convs]
         
         with torch.no_grad():
-            image_embs, _ = self.chat.model.encode_img(images.to(self.chat.device).half())
+            image_embs, _ = self.chat.model.encode_img(images.to(self.chat.device))
         image_lists = [[image_emb[None]] for image_emb in image_embs]
         
         batch_embs = [self.chat.get_context_emb(conv, img_list) for conv, img_list in zip(convs, image_lists)]    

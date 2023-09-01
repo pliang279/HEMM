@@ -79,7 +79,8 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
     
     def evaluate_dataset_batched(self,
                                 model,
-                                metric
+                                metric,
+                                batch_size = 32
                                 ):
         self.load()
         self.metric = metric
@@ -108,16 +109,16 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
                 text = self.get_prompt(captions[i])
                 texts.append(text)
                 raw_image = Image.open(img_path).convert('RGB')
-                image = self.model.vis_processor(raw_image).to(self.model.device)
+                image = self.model.chat.vis_processor(raw_image).unsqueeze(0).to(self.model.chat.device).to(torch.float32)
                 images.append(image)
                 if i == 0:
                     ground_truth_list.append(1)
                 else:
                     ground_truth_list.append(0)
-
-
-        images_tensor = torch.tensor(images, device=self.model.device).unsqueeze(0)
-        outputs = self.model.generate_batch(images_tensor, texts)
+        
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
         for answer in outputs:
             if answer == 'yes':
                 predictions.append(1)
