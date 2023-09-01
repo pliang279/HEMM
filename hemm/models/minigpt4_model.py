@@ -2,6 +2,7 @@ import os
 import subprocess
 import argparse
 import re
+import torch
 
 from hemm.models.minigpt4.common.config import Config
 from hemm.models.minigpt4.common.dist_utils import get_rank
@@ -68,6 +69,7 @@ class MiniGPT4(HEMMModel):
         vis_processor_cfg = cfg.datasets_cfg.cc_sbu_align.vis_processor.train
         vis_processor = registry.get_processor_class(vis_processor_cfg.name).from_config(vis_processor_cfg)
         self.chat = Chat(model, vis_processor, device='cuda:{}'.format(args.gpu_id))
+        self.chat.conv.system = ""
     
     def upload_img(self, gr_img, chat_state):
         chat_state = CONV_VISION.copy()
@@ -111,4 +113,50 @@ class MiniGPT4(HEMMModel):
                 first_number = int(match.group())
                 return first_number
             else:
-                return None
+                return None    
+
+    def generate_batch(self, images, texts, batch_size, max_new_tokens=10, num_beams=3):
+        convs = [CONV_VISION.copy() for _ in range(batch_size)]
+        [self.chat.ask('<Img><ImageHere></Img> {} '.format(text), conv) for conv, text in zip(convs, texts)]
+        [conv.append_message(conv.roles[1], None) for conv in convs]
+        # [conv.append_message(None, None) for conv in convs]
+        
+        with torch.no_grad():
+            image_embs, _ = self.chat.model.encode_img(images.to(self.chat.device).half())
+        image_lists = [[image_emb[None]] for image_emb in image_embs]
+        
+        batch_embs = [self.chat.get_context_emb(conv, img_list) for conv, img_list in zip(convs, image_lists)]    
+        
+        batch_size = len(batch_embs)
+        max_len = max([emb.shape[1] for emb in batch_embs])
+        emb_dim = batch_embs[0].shape[2]
+        dtype = batch_embs[0].dtype
+        device = batch_embs[0].device
+        
+        embs = torch.zeros([batch_size, max_len, emb_dim], dtype=dtype, device=device)
+        attn_mask = torch.zeros([batch_size, max_len], dtype=torch.int, device=device)
+        for i, emb in enumerate(batch_embs):
+            emb_len = emb.shape[1]
+            embs[i, -emb_len:] = emb[0]
+            attn_mask[i, -emb_len:] = 1
+            
+    #     outputs = self.chat.emb_generate(embs, max_new_tokens=20, attention_mask=attn_mask)
+        with torch.no_grad():
+            outputs = self.chat.model.llama_model.generate(
+                        inputs_embeds=embs,
+                        max_new_tokens=max_new_tokens,
+                        attention_mask=attn_mask,
+                        num_beams=num_beams,
+                        do_sample=False,
+                )
+        answers = []
+        for output_token in outputs:
+            if output_token[0] == 0:
+                output_token = output_token[1:]
+            output_texts = self.chat.model.llama_tokenizer.decode(output_token, add_special_tokens=False)
+            output_texts = output_texts.split('</s>')[0]  # remove the stop sign '###'
+            output_texts = output_texts.replace("<s>","")
+            output_texts = output_texts.split(r'[/INST]')[-1].strip()
+            answers.append(output_texts)
+        
+        return answers
