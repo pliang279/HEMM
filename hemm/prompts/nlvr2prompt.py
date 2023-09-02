@@ -10,7 +10,7 @@ Original file is located at
 class NLVR2prompt:
   def __init__(self):
        self.prompt="""
-        You are given two images and a related text, use both these images as context and reply with true or false only
+        You are given an image and a related text, use the image as context and reply with true or false only
         Text: {}
         Answer:
         """
