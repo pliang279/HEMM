@@ -5,6 +5,7 @@ from PIL import Image
 import torch
 from datasets import load_dataset, concatenate_datasets
 from torch.utils.data import Dataset, DataLoader
+from hemm.prompts.winogroundvqa_prompt import WinogroundVQAprompt
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 
@@ -17,14 +18,18 @@ class WinogroundVQA(Dataset):
         self.image_dir = image_dir
         self.questions = load_dataset("csv", data_files=questions_file)['train']
         self.device = device
-        
+        self.prompt = WinogroundVQAprompt()
+    def get_prompt(self, text):
+        prompt_text = self.prompt.format_prompt(text)
+        return prompt_text    
     def __getitem__(self, index):
         res = []
         for pair in ((0,0), (0,1), (1,0), (1,1)):
             im_k = pair[0]
             qu_k = pair[1]
             img = Image.open(os.path.join(self.image_dir, f"ex_{index}_img_{im_k}.png"))
-            question = self.questions[index][f'query_{qu_k}']
+            temporary = self.questions[index][f'query_{qu_k}']
+            question=self.get_prompt(temporary)
             gt = 'yes' if pair[0] == pair[1] else 'no'
             res.append({
                 'image': img,
