@@ -65,3 +65,44 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return results
+
+    def evaluate_dataset_batched(self,
+                         model,
+                         metric,
+                         batch_size=32
+                         ):
+        self.load(self.kaggle_api_path)
+        self.metric = metric
+        self.model = model
+        df = pd.read_excel(self.data_path)
+        predictions = []
+        ground_truth = []
+        images = []
+        texts = []
+        for index, row in tqdm(df.iterrows(), total=len(df)):
+            image_path = os.path.join(self.image_dir, row['image_name'])
+            caption = row['text_corrected']
+            gt_label = row['humour']
+            ground_truth.append(self.choices.index(gt_label))
+
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+
+            text = self.get_prompt(caption)
+            output = self.model.generate(text, image_path)
+            answer = self.model.answer_extractor(output, self.dataset_key)
+            texts.append(text)
+
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+        for answer in outputs:
+            if answer:
+                predictions.append(answer)
+            else:
+                random_item = random.choice(list(range(0, 4)))
+                predictions.append(random_item)
+        
+        results = self.metric.compute(ground_truth, predictions)
+        return results

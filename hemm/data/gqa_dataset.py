@@ -63,3 +63,40 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return results
+
+    def evaluate_dataset(self,
+                         model,
+                         metric,
+                         batch_size=32
+                         ) -> None:
+        self.load()
+        self.model = model
+        self.metric = metric
+        image_dir = 'gqa_images/images'
+        annotation_file = json.load(open(os.path.join('gqa_scene_graphs', 'val_sceneGraphs.json'), 'r'))
+        question_file = json.load(open(os.path.join('gqa_questions', 'val_all_questions.json'), 'r'))
+        
+        ground_truth = []
+        predictions = []
+
+        texts = []
+        images = []
+
+        for data_index in tqdm(question_file, total=len(question_file)):
+            # print(question_file[data_index])
+            question = question_file[data_index]['question']
+            image_path = os.path.join(image_dir, question_file[data_index]['imageId']+'.jpg')
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+
+            ground_truth_answer = question_file[data_index]['answer']
+            text = self.get_prompt(question)
+            texts.append(text)
+            ground_truth.append(ground_truth_answer)
+        
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+        results = self.metric.compute(ground_truth, predictions)
+        return results

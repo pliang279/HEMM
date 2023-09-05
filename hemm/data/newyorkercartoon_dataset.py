@@ -109,7 +109,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
                 text = self.get_prompt(captions[i])
                 texts.append(text)
                 raw_image = Image.open(img_path).convert('RGB')
-                image = self.model.chat.vis_processor(raw_image).unsqueeze(0).to(self.model.chat.device).to(torch.float32)
+                image = self.model.get_image_tensor(raw_image)
                 images.append(image)
                 if i == 0:
                     ground_truth_list.append(1)

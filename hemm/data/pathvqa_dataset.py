@@ -54,3 +54,40 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return results
+
+    def evaluate_dataset_batched(self,
+                         model,
+                         metric,
+                         batch_size=32
+                         ):
+        self.load()
+        self.metric = metric
+        self.model = model
+        
+        images_dir = os.path.join('pathvqa_images','pvqa','images','test')
+        annotation_path = os.path.join('pathvqa_images','pvqa','qas','test','test_qa.pkl')
+        annotation_file = pickle.load(open(annotation_path, 'rb'))
+        
+        texts = []
+        images = []
+
+        ground_truth = []
+        predictions = []
+        for index, data_dict in tqdm(enumerate(annotation_file), total=len(annotation_file)):
+            image_path = os.path.join(images_dir, data_dict['image'] + '.jpg')
+            question = data_dict['question']
+            ground_truth_answer = data_dict["answer"]
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+            text = self.get_prompt(question)
+            texts.append(text)
+            
+            ground_truth.append(ground_truth_answer)
+        
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+
+        results = self.metric.compute(ground_truth, predictions)
+        return results

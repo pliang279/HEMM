@@ -62,3 +62,43 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
 
         results = self.metric.compute(ground_truth, predictions)
         return results
+    
+    def evaluate_dataset_batched(self,
+                         model,
+                         metric,
+                         batch_size=32
+                         ) -> None:
+        self.load(self.kaggle_api_path)
+        self.model = model
+        self.metric = metric
+        label_path = os.path.join(self.dataset_dir, 'data', self.evaluate_path)
+        json_list = list(open(label_path, 'r'))
+        image_dir = os.path.join(self.dataset_dir, 'data')
+
+        ground_truth = []
+        predictions = []
+
+        images = []
+        texts = []
+
+        for index in tqdm(range(len(json_list)), total=len(json_list)):
+            json_obj = json.loads(json_list[index])
+            text = self.get_prompt(json_obj['text'])
+            image_path = os.path.join(image_dir, json_obj['img'])
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+            texts.append(text)
+            ground_truth.append(json_obj['label'])
+
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+        for output in outputs:
+            answer = self.model.answer_extractor(output, self.dataset_key)
+            if answer == 'yes':
+                predictions.append(1)
+            else:
+                predictions.append(0)
+        results = self.metric.compute(ground_truth, predictions)
+        return results

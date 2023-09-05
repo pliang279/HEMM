@@ -36,3 +36,9 @@ class HEMMDatasetEvaluator(abc.ABC):
         """
         download dataset script
         """
+
+    @abc.abstractmethod
+    def evaluate_dataset_batched(self):
+        """
+        Evaluate dataset in a batched format
+        """

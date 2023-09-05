@@ -57,3 +57,35 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return results
+
+    def evaluate_dataset_batched(self,
+                         model,
+                         metric,
+                         batch_size=32
+                         ) -> None:
+        self.load()
+        self.metric = metric
+        self.model = model
+        annotation_file = json.load(open(self.annotation_path))
+        predictions = []
+        ground_truth = []
+        images = []
+        texts = []
+        for index, data_dict in tqdm(enumerate(annotation_file), total=len(annotation_file)):
+            image_path = f"{self.images}/{data_dict['img_fname'].strip()}"
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+            
+            image_desc = data_dict["img_captions"][0]
+            title = data_dict["title"]
+            gt_caption = data_dict["meme_captions"][0]
+            text = self.get_prompt(title, image_desc)
+            ground_truth.append(gt_caption)
+            texts.append(text)
+        
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+        results = self.metric.compute(ground_truth, predictions)
+        return results

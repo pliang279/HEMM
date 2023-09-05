@@ -76,3 +76,56 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 
         results = self.metric.compute(ground_truth_list, predictions)
         return results
+    
+    def evaluate_dataset(self,
+                         model,
+                         metric,
+                         batch_size=32
+                         ):
+        self.load()
+        self.model = model
+        self.metric = metric
+
+        image_dir = os.path.join(self.dataset_dir, 'val2014')        
+        annotation_file = os.path.join(self.dataset_dir, 'mscoco_val2014_annotations.json')
+        question_file = os.path.join(self.dataset_dir, 'OpenEnded_mscoco_val2014_questions.json')
+
+        annotations = json.load(open(annotation_file, "r"))
+        questions = json.load(open(question_file, "r"))
+
+        qid_to_q = {}
+        for ques in questions["questions"]:
+            qid_to_q[ques["question_id"]] = ques["question"]
+        
+        images = []
+        qs = []
+        ground_truth = []
+
+        texts = []
+        images = []
+
+        for ann in annotations["annotations"]:
+            images.append(ann["image_id"])
+            qs.append(qid_to_q[ann["question_id"]])
+            ground_truth.append(ann)
+        
+        predictions = []
+        ground_truth_list = []
+        for i in tqdm(range(len(images)), total=len(images)):
+            image_path = os.path.join(image_dir, f"COCO_val2014_000000{images[i]}.jpg")
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+
+            text = self.get_prompt(qs[i])
+            texts.append(text)
+
+            ground_truth_answer = ground_truth[i]['answers'][0]['raw_answer']
+            ground_truth_list.append(ground_truth_answer)
+
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+
+        results = self.metric.compute(ground_truth_list, predictions)
+        return results

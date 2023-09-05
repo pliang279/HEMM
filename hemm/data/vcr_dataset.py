@@ -125,3 +125,68 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			
 		results = self.metric.compute(ground_truth, predictions)
 		return results
+
+	def evaluate_dataset_batched(self,
+						 model,
+						 metric,
+						 batch_size = 32
+						 ):
+		self.load()
+		self.model = model
+		self.metric = metric
+
+		texts = []
+		images = []
+
+		with open(self.annotation_file) as f:
+			self.annotations = f.readlines()
+
+		predictions = []
+		ground_truth = []
+		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
+			ann = literal_eval(self.annotations[i])
+			question = self.fix_tokenization(ann["question"], ann["objects"])
+			new_answer_choices = []
+			for ch in ann["answer_choices"]:
+				new_answer_choices.append(self.fix_tokenization(ch, ann["objects"]))
+			new_rationale_choices = []
+			for ch in ann["rationale_choices"]:
+				new_rationale_choices.append(self.fix_tokenization(ch, ann["objects"]))
+			
+			prompt = self.get_prompt(question, new_answer_choices, new_rationale_choices, ann["answer_label"])
+			img = np.asarray(Image.open(os.path.join(self.image_dir, ann['img_fn'])).convert("RGB"))
+			metadata = json.load(open(os.path.join(self.image_dir, ann['metadata_fn'])))
+
+			boxes = metadata["boxes"]
+			segments = metadata["segms"]
+
+			names = []
+			for idx, obj in enumerate(ann["objects"]):
+				names.append(f"{obj}{idx}")
+			
+			self.draw_bounding_boxes(img, boxes, names)
+			self.draw_segments(img, segments)
+
+			image_path = './current_image.jpg'
+			img = Image.fromarray(img)
+			img = img.save(image_path)
+			raw_image = Image.open(image_path).convert('RGB')
+			image = self.model.get_image_tensor(raw_image)
+			images.append(image)
+			texts.append(prompt)
+			
+			ground_truth.append(ann["answer_label"])
+			
+		images_tensor = torch.cat(images, dim=0)
+		images_tensor = images_tensor.to(self.model.chat.device)
+		outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+		for output in outputs:
+			answer = self.model.answer_extractor(output, self.dataset_key)
+			if answer:
+				predictions.append(answer)
+			else:
+				random_item = random.choice(list(range(0, 4)))
+				predictions.append(random_item)
+
+		results = self.metric.compute(ground_truth, predictions)
+		return results
