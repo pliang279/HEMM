@@ -47,3 +47,13 @@ class PromptCap(HEMMModel):
         elif dataset_key == 'winogroundvqa':
             answer = ''.join(filter(str.isalpha, text.split()[0].lower()))
             return answer
+    
+    def get_image_tensor(self, image):
+        pass 
+
+    def generate_batch(self, 
+                       images,
+                       texts, 
+                       batch_size, 
+                       ):
+        pass

@@ -40,3 +40,13 @@ class BLIP2(HEMMModel):
                 return first_number
             else:
                 return None
+    
+    def get_image_tensor(self, image):
+        pass 
+
+    def generate_batch(self, 
+                       images,
+                       texts, 
+                       batch_size, 
+                       ):
+        pass

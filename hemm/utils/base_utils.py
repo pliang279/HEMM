@@ -37,9 +37,7 @@ def load_dataset_evaluator(dataset_key, kaggle_api_path=None):
         'okvqa': ok_vqa_dataset.OKVQADatasetEvaluator(),
         'gqa': gqa_dataset.GQADatasetEvaluator(),
         'vqarad': vqarad_dataset.VQARADDatasetEvaluator(),
-        'pmcvqa': pmcvqa_dataset.PMCVQADatasetEvaluator(),
         'pathvqa': pathvqa_dataset.PathVQADatasetEvaluator(),
-        'rsicd': rsicd_dataset.RSICDDatasetEvaluator(),
         'ucmerced':ucmerced_dataset.UCMercedDatasetEvaluator(
             kaggle_api_path=kaggle_api_path
         ),

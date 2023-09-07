@@ -68,3 +68,10 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
                 continue
         
         return sum(predictions) / len(predictions)
+    
+    def evaluate_dataset_batched(self,
+                         metric,
+                         model,
+                         batch_size=32
+                         ):
+      pass
