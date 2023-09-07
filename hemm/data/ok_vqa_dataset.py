@@ -77,7 +77,7 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
         results = self.metric.compute(ground_truth_list, predictions)
         return results
     
-    def evaluate_dataset(self,
+    def evaluate_dataset_batched(self,
                          model,
                          metric,
                          batch_size=32
