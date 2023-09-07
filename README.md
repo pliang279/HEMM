@@ -34,11 +34,11 @@ dataset_evaluator = load_dataset_evaluator(dataset_name, kaggle_api_directory='.
 metric_name = 'accuracy'
 metric = load_metric(metric_name)
 
-# For single data point evaluation
+## For single data point evaluation
 results = dataset_evaluator.evaluate_dataset(model=model, metric=metric)
 print(results)
 
-# For batching evaluation
+## For batching evaluation
 results = dataset_evaluator.evaluate_dataset_batched(model=model, metric=metric, batch_size=32)
 print(results)
 ```
