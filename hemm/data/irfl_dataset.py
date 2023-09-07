@@ -49,13 +49,13 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
                 distractors.append(answer_image)
                 for distractor in distractors:
                     response = requests.get(distractor)
-                if response.status_code == 200:
-                    with open("current_image.jpg", 'wb') as f:
-                        f.write(response.content)
-                image_path = "current_image.jpg"
-                answer = self.model.generate(question, image_path)
-                answer = self.model.answer_extractor(answer, self.dataset_key)
-                generated_answers.append(answer)
+                    if response.status_code == 200:
+                        with open("current_image.jpg", 'wb') as f:
+                            f.write(response.content)
+                    image_path = "current_image.jpg"
+                    answer = self.model.generate(question, image_path)
+                    answer = self.model.answer_extractor(answer, self.dataset_key)
+                    generated_answers.append(answer)
 
                 if generated_answers[-1] == 'yes':
                     if generated_answers[0] == 'no' and generated_answers[1] == 'no' and generated_answers[2] == 'no':
@@ -68,3 +68,10 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
                 continue
         
         return sum(predictions) / len(predictions)
+    
+    def evaluate_dataset_batched(self,
+                         metric,
+                         model,
+                         batch_size=32
+                         ):
+      pass

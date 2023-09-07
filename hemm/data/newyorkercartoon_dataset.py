@@ -76,3 +76,54 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return results
+    
+    def evaluate_dataset_batched(self,
+                                model,
+                                metric,
+                                batch_size = 32
+                                ):
+        self.load()
+        self.metric = metric
+        self.model = model
+        texts = []
+        images = []
+        ground_truth_list = []
+        predictions = []
+        for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
+            img_id = img.split('.jpg')[0]
+            img_path = os.path.join(self.image_dir, img)
+            if os.path.exists(os.path.join(self.caption_dir, img_id+'.csv')):
+                df = pd.read_csv(os.path.join(self.caption_dir, img_id+ '.csv'))
+            elif os.path.exists(os.path.join(self.caption_dir, img_id+"_"+self.csv_path_suffix_1+'.csv')):
+                df = pd.read_csv(os.path.join(self.caption_dir, img_id+"_"+self.csv_path_suffix_1+'.csv'))
+            elif os.path.exists(os.path.join(self.caption_dir, img_id+"_"+self.csv_path_suffix_2+'.csv')):
+                df = pd.read_csv(os.path.join(self.caption_dir, img_id+"_"+self.csv_path_suffix_2+'.csv'))
+            
+            captions = []
+            captions.append(df.iloc[0]['caption'])
+
+            for i in range(1,5):
+                captions.append(df.iloc[-1*i]['caption'])
+            
+            for i in range(len(captions)):
+                text = self.get_prompt(captions[i])
+                texts.append(text)
+                raw_image = Image.open(img_path).convert('RGB')
+                image = self.model.get_image_tensor(raw_image)
+                images.append(image)
+                if i == 0:
+                    ground_truth_list.append(1)
+                else:
+                    ground_truth_list.append(0)
+        
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+        for answer in outputs:
+            if answer == 'yes':
+                predictions.append(1)
+            else:
+                predictions.append(0)
+            
+        results = self.metric.compute(ground_truth_list, predictions)
+        return results

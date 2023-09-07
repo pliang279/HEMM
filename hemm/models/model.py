@@ -1,6 +1,6 @@
 import abc
 import torch
-from typing import Optional, Union
+from typing import Optional, Union, List
 from PIL import Image
 
 
@@ -25,6 +25,13 @@ class HEMMModel(abc.ABC):
         Loads the model and it's processor with the initialized weight directory
         :return:
         """
+    
+    @abc.abstractmethod
+    def get_image_tensor(self, image):
+        """
+        Get image tensor using model's vision processor.
+        Tensor should have batch dimension.
+        """
 
     @abc.abstractmethod
     def generate(self,
@@ -37,4 +44,14 @@ class HEMMModel(abc.ABC):
         :param image: Image prompt (pillow)
         :param return_logits: return logit tensor if true, else return text/image.
         :return: return str, image or logit tensor.
+        """
+    
+    @abc.abstractmethod
+    def generate_batch(self, 
+                       images: torch.Tensor,
+                       texts: List[str], 
+                       batch_size, 
+                       ):
+        """
+        Batching logic for the model
         """

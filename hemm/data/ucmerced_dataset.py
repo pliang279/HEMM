@@ -58,3 +58,39 @@ class UCMercedDatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return results
+    
+    def evaluate_dataset_batched(self,
+                         model,
+                         metric,
+                         batch_size=32.
+                         ) -> None:
+        self.load()
+        self.model = model
+        self.metric = metric
+        
+        predictions = []
+        ground_truth = []
+
+        texts = []
+        images = []
+
+        csv_path = 'ucmercedimages/validation.csv'
+        df = pd.read_csv(csv_path)
+        images_dir = 'ucmercedimages/images_train_test_val/validation'
+
+        for index, row in tqdm(df.iterrows(), total=len(df)):
+            image_path = os.path.join(images_dir, row['Filename'])
+            ground_truth_answer = row['ClassName']
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+            text = self.get_prompt()
+            texts.append(text)
+            ground_truth.append(ground_truth_answer)
+        
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+
+        results = self.metric.compute(ground_truth, predictions)
+        return results

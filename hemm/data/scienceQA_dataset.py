@@ -70,3 +70,57 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return results
+    
+    def evaluate_dataset_batched(self,
+                         model,
+                         metric,
+                         batch_size=32
+                         ) -> None:
+        
+        self.load()
+        self.metric = metric
+        self.model = model
+        predictions = []
+        ground_truth = []
+        images = []
+        texts = []
+        for item in tqdm(self.dataset, total=len(self.dataset)):
+            if not item['image']:
+                continue
+            question_s = item['question']
+            choices = item['choices']
+            lecture = item['lecture']
+            image_url = item['image']
+            context = item['hint']
+            ground_truth.append(['answer'])
+            question = self.get_prompt(question_s,
+                                       choices,
+                                       lecture,
+                                       context
+                                       )
+            for ind, choice in enumerate(choices):
+                curr_choice_str = str(ind+1) + ') ' + choice
+                question = question + curr_choice_str + '\n'
+            question += '\n'
+            texts.append(question)
+            with open("current_image.jpg", 'wb') as f:
+                # f.write(image_url)
+                image_url.save(f)
+                image_path = "current_image.jpg"
+            
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+        for ans in outputs:
+            number = self.model.answer_extractor(ans, self.dataset_key)
+            if number:
+                predictions.append(number)
+            else:
+                random_item = random.choice(list(range(0, len(choices))))
+                predictions.append(random_item)
+        results = self.metric.compute(ground_truth, predictions)
+        return results

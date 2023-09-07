@@ -53,3 +53,37 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return results
+
+    def evaluate_dataset_batched(self,
+                         model,
+                         metric,
+                         batch_size=32
+                         ):
+        self.load()
+        self.model = model
+        self.metric = metric
+        
+        predictions = []
+        ground_truth = []
+        images = []
+        texts = []
+        for data_dict in tqdm(self.dataset, total=len(self.dataset)):
+            question = data_dict['question']
+            image = data_dict['image']
+            with open("current_image.jpg", 'wb') as f:
+                # f.write(image_url)
+                image.save(f)
+                image_path = "current_image.jpg"
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+            ground_truth_answer = data_dict['answer']
+            text = self.get_prompt(question)
+            texts.append(text)
+            ground_truth.append(ground_truth_answer)
+        
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.chat.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+        results = self.metric.compute(ground_truth, predictions)
+        return results

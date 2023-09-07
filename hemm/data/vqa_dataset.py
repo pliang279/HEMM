@@ -68,3 +68,36 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return results
+    
+    def evaluate_dataset_batched(self,
+                                 model,
+                                metric,
+                                batch_size = 32
+                                ):
+      self.load()
+      self.metric = metric
+      self.model = model
+      texts = []
+      images = []
+      ground_truth = []
+      image_dir = 'vqa_images'
+      annotation_file = json.load(open(os.path.join('vqa_annotations', 'abstract_v002_val2015_annotations.json'), 'r'))
+      question_file = json.load(open(os.path.join('vqa_questions', 'OpenEnded_abstract_v002_val2015_questions.json'), 'r'))
+
+      for data_dict in tqdm(question_file['questions'], total=len(question_file['questions'])):
+          question = data_dict['question']
+          image_path = os.path.join(image_dir, "abstract_v002_val2015_0000000{}".format(str(data_dict['image_id']))+'.png')
+          raw_image = Image.open(image_path).convert('RGB')
+          image = self.model.get_image_tensor(raw_image)
+          images.append(image)
+          ground_truth_answer = self.get_ground_truth_answer(annotation_file, data_dict['question_id'])
+          text = self.get_prompt(question)
+          texts.append(text)
+          ground_truth.append(ground_truth_answer)
+
+      images_tensor = torch.cat(images, dim=0)
+      images_tensor = images_tensor.to(self.model.chat.device)
+      predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+
+      results = self.metric.compute(ground_truth, predictions)
+      return results
