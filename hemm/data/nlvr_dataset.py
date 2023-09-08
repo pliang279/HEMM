@@ -10,7 +10,7 @@ Original file is located at
 from torch.utils.data import Dataset, DataLoader
 import requests
 from PIL import Image
-from hemm.prompts.nlvr_prompt import nlvr_prompt
+from hemm.prompts.nlvr_prompt import nlvrprompt
 import os
 import json
 from typing import Optional, Union, List
