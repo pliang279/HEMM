@@ -37,6 +37,8 @@ def load_dataset_evaluator(dataset_key, kaggle_api_path=None):
         'okvqa': ok_vqa_dataset.OKVQADatasetEvaluator(),
         'gqa': gqa_dataset.GQADatasetEvaluator(),
         'winogroundVQA': winogroundVQA_dataset.WinogroundVQAEvaluator(),
+        'nlvr':nlvr_dataset.NLVRDatasetEvaluator(),
+        'nlvr2':nlvr2.nlvr2evaluator(),
         'vqarad': vqarad_dataset.VQARADDatasetEvaluator(),
         'pathvqa': pathvqa_dataset.PathVQADatasetEvaluator(),
         'ucmerced':ucmerced_dataset.UCMercedDatasetEvaluator(
