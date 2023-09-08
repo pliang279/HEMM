@@ -32,7 +32,7 @@ class NLVRDatasetEvaluator(HEMMDatasetEvaluator):
         #self.dataset_key = 'newyorkercartoon'
         self.dataset_dir = dataset_dir
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.prompt = nlvr_prompt()
+        self.prompt = nlvrprompt()
 
         self.image_dir = os.path.join(self.dataset_dir, 'nlvr/images/0')
         self.sentences = os.path.join(self.dataset_dir, 'train.json')
