@@ -11,14 +11,14 @@ from hemm.metrics.metric import HEMMMetric
 
 class WinogroundVQA(Dataset):
     def __init__(self,
-                 image_dir,
                  questions_file,
                  device,
                  ):
-        self.image_dir = image_dir
+        self.image_dir = load_dataset("facebook/winoground", use_auth_token=auth_token)['test']
         self.questions = load_dataset("csv", data_files=questions_file)['train']
         self.device = device
         self.prompt = WinogroundVQAprompt()
+                     
     def get_prompt(self, text):
         prompt_text = self.prompt.format_prompt(text)
         return prompt_text    
@@ -27,7 +27,7 @@ class WinogroundVQA(Dataset):
         for pair in ((0,0), (0,1), (1,0), (1,1)):
             im_k = pair[0]
             qu_k = pair[1]
-            img = Image.open(os.path.join(self.image_dir, f"ex_{index}_img_{im_k}.png"))
+            img = self.image_dir[index][f'image_{im_k}']
             temporary = self.questions[index][f'query_{qu_k}']
             question=self.get_prompt(temporary)
             gt = 'yes' if pair[0] == pair[1] else 'no'
@@ -63,11 +63,9 @@ class WinogroundVQAEvaluator(HEMMDatasetEvaluator):
     def evaluate(self,
                          metrics: List[HEMMMetric],
                          ) -> None:
-
-        image_dir = os.path.join(self.dataset_dir, 'images')
         questions_file = os.path.join(self.dataset_dir, 'winoground_vqa.csv')
 
-        pt_dataset = WinogroundVQA(image_dir, questions_file, self.device)
+        pt_dataset = WinogroundVQA(questions_file, self.device)
         loader = DataLoader(pt_dataset, batch_size=self.batch_size, shuffle=self.shuffle_dataset)
 
         # This is the concrete implementation of the `evaluate` function.
