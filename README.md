@@ -72,6 +72,7 @@ vqarad
 resisc45
 ucmerced
 pathvqa
+face_emotion
 ```
 
 To evaluate these datasets, metrics are specified in the ```hemm.metrics``` directory
