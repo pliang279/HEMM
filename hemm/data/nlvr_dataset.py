@@ -32,15 +32,15 @@ class NLVRDatasetEvaluator(HEMMDatasetEvaluator):
         #self.dataset_key = 'newyorkercartoon'
         self.dataset_dir = dataset_dir
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.prompt = NewYorkerCartoonPrompt()
+        self.prompt = nlvrprompt()
 
-        self.image_dir = os.path.join(self.dataset_dir, 'images/0')
+        self.image_dir = os.path.join(self.dataset_dir, 'nlvr/images/0')
         self.sentences = os.path.join(self.dataset_dir, 'train.json')
         #self.csv_path_suffix_1 = 'LilUCB'
         #self.csv_path_suffix_2 = 'lil-KLUCB'
 
     def load(self):
-        shell_command('git clone https://github.com/lil-lab/nlvr/tree/master/nlvr')
+        shell_command('git clone https://github.com/lil-lab/nlvr.git')
 
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)

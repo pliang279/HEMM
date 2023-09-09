@@ -9,7 +9,7 @@ Original file is located at
 
 class WinogroundVQAprompt:
   def __init__(self):
-       self.prompt=f"""Given this image along with a question about the image,
+       self.prompt="""Given this image along with a question about the image,
   please answer the question with only the word 'yes' or 'no'.
   Question: {}
   Answer:"""
