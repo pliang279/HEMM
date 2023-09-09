@@ -26,7 +26,7 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
         self.prompt = FaceEmotionPrompt()
         self.choices = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
 
-    def get_prompt(self, caption) -> str:
+    def get_prompt(self) -> str:
         prompt_text = self.prompt.format_prompt()
         return prompt_text
 
@@ -51,16 +51,16 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
         
         data_dict = {}
         for fol in os.listdir(self.data_path):
-            for img in os.path.join(self.data_path, fol):
+            for img in os.listdir(os.path.join(self.data_path, fol)):
                 data_dict[img] = fol
         
         data_dict_list = list(data_dict.items())
         random.shuffle(data_dict_list)
-        data_dict_shuffled = dict(data_dict_shuffled) 
+        data_dict_shuffled = dict(data_dict_list) 
         
-        for img, gt in tqdm(data_dict_shuffled.items(), total=len()):
+        for img, gt in tqdm(data_dict_shuffled.items(), total=len(data_dict_shuffled.keys())):
             image_path = os.path.join(self.data_path, gt, img)
-            ground_truth.append(gt)
+            ground_truth.append(self.choices.index(gt))
             text = self.get_prompt()
             output = self.model.generate(text, image_path)
             answer = self.model.answer_extractor(output, self.dataset_key)
@@ -89,19 +89,18 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
 
         data_dict = {}
         for fol in os.listdir(self.data_path):
-            for img in os.path.join(self.data_path, fol):
+            for img in os.listdir(os.path.join(self.data_path, fol)):
                 data_dict[img] = fol
         
         data_dict_list = list(data_dict.items())
         random.shuffle(data_dict_list)
-        data_dict_shuffled = dict(data_dict_shuffled) 
+        data_dict_shuffled = dict(data_dict_list) 
         
-        for img, gt in tqdm(data_dict_shuffled.items(), total=len()):
+        for img, gt in tqdm(data_dict_shuffled.items(), total=len(data_dict_shuffled.keys())):
             image_path = os.path.join(self.data_path, gt, img)
-            ground_truth.append(gt)
+            ground_truth.append(self.choices.index(gt))
             text = self.get_prompt()
-            output = self.model.generate(text, image_path)
-            texts.append(output)
+            texts.append(text)
             
             raw_image = Image.open(image_path).convert('RGB')
             image = self.model.get_image_tensor(raw_image)
