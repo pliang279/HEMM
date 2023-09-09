@@ -62,7 +62,7 @@ class UCMercedDatasetEvaluator(HEMMDatasetEvaluator):
     def evaluate_dataset_batched(self,
                          model,
                          metric,
-                         batch_size=32.
+                         batch_size=32
                          ) -> None:
         self.load()
         self.model = model

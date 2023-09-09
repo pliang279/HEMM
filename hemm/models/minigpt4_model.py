@@ -70,7 +70,6 @@ class MiniGPT4(HEMMModel):
         vis_processor_cfg = cfg.datasets_cfg.cc_sbu_align.vis_processor.train
         vis_processor = registry.get_processor_class(vis_processor_cfg.name).from_config(vis_processor_cfg)
         self.chat = Chat(model, vis_processor, device='cuda:{}'.format(args.gpu_id))
-        self.chat.conv.system = ""
     
     def upload_img(self, gr_img, chat_state):
         chat_state = CONV_VISION.copy()
