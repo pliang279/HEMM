@@ -119,7 +119,8 @@ class MiniGPT4(HEMMModel):
         image_tensor = self.chat.vis_processor(image).unsqueeze(0).to(self.chat.device)
         return image_tensor
 
-    def generate_batch(self, images, texts, batch_size, max_new_tokens=10, num_beams=3):
+    def generate_batch_func(self, images, texts, batch_size, max_new_tokens=10, num_beams=3):
+        answers = []
         convs = [CONV_VISION.copy() for _ in range(batch_size)]
         [self.chat.ask('<Img><ImageHere></Img> {} '.format(text), conv) for conv, text in tqdm(zip(convs, texts))]
         [conv.append_message(conv.roles[1], None) for conv in convs]
@@ -156,7 +157,6 @@ class MiniGPT4(HEMMModel):
                 )
 
         print("Generating Answers")
-        answers = []
         for output_token in outputs:
             if output_token[0] == 0:
                 output_token = output_token[1:]
@@ -165,5 +165,31 @@ class MiniGPT4(HEMMModel):
             output_texts = output_texts.replace("<s>","")
             output_texts = output_texts.split(r'[/INST]')[-1].strip()
             answers.append(output_texts)
+
+        return answers
+
+    def generate_batch(self, images, texts, batch_size, max_new_tokens=10, num_beams=3):
+        answers = []
+        total_batches = len(texts) // batch_size
+
+        for batch_idx in tqdm(range(total_batches), total=total_batches):
+            start_idx = batch_idx * batch_size 
+            end_idx = (batch_idx + 1) * batch_size 
+            
+            batch_texts = texts[start_idx:end_idx]
+            batch_images = images[start_idx:end_idx]
+            batch_answers = self.generate_batch_func(images, texts, batch_size, max_new_tokens, num_beams)
+            answers.extend(batch_answers)
+            
         
+        if len(texts) % batch_size != 0:
+            start_idx = total_batches * batch_size
+            end_idx = len(texts)
+
+            # Get the remaining data as a smaller batch
+            batch_texts = texts[start_idx:end_idx]
+            batch_images = images[start_idx:end_idx]
+            batch_answers = self.generate_batch_func(images, texts, batch_size, max_new_tokens, num_beams)
+            answers.extend(batch_answers)
+
         return answers
