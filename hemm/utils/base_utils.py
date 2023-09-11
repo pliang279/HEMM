@@ -39,7 +39,7 @@ def load_dataset_evaluator(dataset_key, kaggle_api_path=None):
         # 'winogroundVQA': winogroundVQA_dataset.WinogroundVQAEvaluator(),
         # 'nlvr':nlvr_dataset.NLVRDatasetEvaluator(),
         # 'nlvr2':nlvr2.NLVR2evaluator(),
-        'cocoqa':cocoqa_dataset.cocoqaEvaluator(),
+        #'cocoqa':cocoqa_dataset.cocoqaEvaluator(),
         'vqarad': vqarad_dataset.VQARADDatasetEvaluator(),
         'pathvqa': pathvqa_dataset.PathVQADatasetEvaluator(),
         'ucmerced':ucmerced_dataset.UCMercedDatasetEvaluator(
