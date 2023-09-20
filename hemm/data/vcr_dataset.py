@@ -117,11 +117,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			output = self.model.generate(prompt, image_path)
 			answer = self.model.answer_extractor(output, self.dataset_key)
 			ground_truth.append(ann["answer_label"])
-			if answer:
-				predictions.append(answer)
-			else:
-				random_item = random.choice(list(range(0, 4)))
-				predictions.append(random_item)
+			predictions.append(answer)
 			
 		results = self.metric.compute(ground_truth, predictions)
 		return results
@@ -141,7 +137,6 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		with open(self.annotation_file) as f:
 			self.annotations = f.readlines()
 
-		predictions = []
 		ground_truth = []
 		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
 			ann = literal_eval(self.annotations[i])
@@ -180,13 +175,6 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		images_tensor = torch.cat(images, dim=0)
 		images_tensor = images_tensor.to(self.model.chat.device)
 		outputs = self.model.generate_batch(images_tensor, texts, batch_size)
-		for output in outputs:
-			answer = self.model.answer_extractor(output, self.dataset_key)
-			if answer:
-				predictions.append(answer)
-			else:
-				random_item = random.choice(list(range(0, 4)))
-				predictions.append(random_item)
 
-		results = self.metric.compute(ground_truth, predictions)
+		results = self.metric.compute(ground_truth, outputs)
 		return results

@@ -1,6 +1,6 @@
 class VCRPrompt:
     def __init__(self):
-        self.prompt = "Question: {} Choose from the below choices: 0) {} 1) {} 2) {} 3) {}"
+        self.prompt = "Question: {} Choose from the below choices: {}, {}, {}, {}"
         # self.rationale_prompt = "Answer: {}. Question: {} is correct because? Choose from the below choices: 0) {} 1) {} 2) {} 3) {}"
 
     def format_prompt(self, question, answer_choices, rationale_choices=None, answer_label=None):
