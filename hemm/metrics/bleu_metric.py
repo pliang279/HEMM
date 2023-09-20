@@ -6,6 +6,7 @@ class BleuMetric(HEMMMetric):
     def compute(self, 
                        ground_truth, 
                        predictions):
+        self.name = "Blue Score"
         bleu = evaluate.load('bleu')
         ground_truth = [[x] for x in ground_truth]
         results = bleu.compute(predictions=predictions, references=ground_truth)

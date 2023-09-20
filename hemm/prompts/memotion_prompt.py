@@ -4,3 +4,4 @@ class MemotionPrompt:
 
     def format_prompt(self, caption):
         return self.prompt.format(caption)
+    

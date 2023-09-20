@@ -6,4 +6,6 @@ class AccuracyMetric(HEMMMetric):
     def compute(self, 
                        ground_truth, 
                        predictions):
+        self.name = "Accuracy"
         return accuracy_score(predictions, ground_truth)
+    
