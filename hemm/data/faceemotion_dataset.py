@@ -63,12 +63,7 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(self.choices.index(gt))
             text = self.get_prompt()
             output = self.model.generate(text, image_path)
-            answer = self.model.answer_extractor(output, self.dataset_key)
-            if answer:
-                predictions.append(answer)
-            else:
-                random_item = random.choice(list(range(0, 7)))
-                predictions.append(random_item)
+            predictions.append(output)
 
         results = self.metric.compute(ground_truth, predictions)
         return results
@@ -82,7 +77,6 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
         self.metric = metric
         self.model = model
         
-        predictions = []
         ground_truth = []
         images = []
         texts = []
@@ -109,14 +103,6 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
         images_tensor = torch.cat(images, dim=0)
         images_tensor = images_tensor.to(self.model.chat.device)
         outputs = self.model.generate_batch(images_tensor, texts, batch_size)
-        
-        for output in outputs:
-            answer = self.model.answer_extractor(output, self.dataset_key)
-            if answer:
-                predictions.append(answer)
-            else:
-                random_item = random.choice(list(range(0, 7)))
-                predictions.append(random_item)
 
-        results = self.metric.compute(ground_truth, predictions)
+        results = self.metric.compute(ground_truth, outputs)
         return results
