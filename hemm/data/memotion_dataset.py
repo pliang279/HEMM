@@ -56,12 +56,7 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(self.choices.index(gt_label))
             text = self.get_prompt(caption)
             output = self.model.generate(text, image_path)
-            answer = self.model.answer_extractor(output, self.dataset_key)
-            if answer:
-                predictions.append(answer)
-            else:
-                random_item = random.choice(list(range(0, 4)))
-                predictions.append(random_item)
+            predictions.append(output)
         
         results = self.metric.compute(ground_truth, predictions)
         return results
@@ -75,7 +70,6 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
         self.metric = metric
         self.model = model
         df = pd.read_excel(self.data_path)
-        predictions = []
         ground_truth = []
         images = []
         texts = []
@@ -95,13 +89,6 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
         images_tensor = torch.cat(images, dim=0)
         images_tensor = images_tensor.to(self.model.chat.device)
         outputs = self.model.generate_batch(images_tensor, texts, batch_size)
-        for output in outputs:
-            answer = self.model.answer_extractor(output, self.dataset_key)
-            if answer:
-                predictions.append(answer)
-            else:
-                random_item = random.choice(list(range(0, 4)))
-                predictions.append(random_item)
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = self.metric.compute(ground_truth, outputs)
         return results
