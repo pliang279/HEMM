@@ -9,6 +9,9 @@ import subprocess
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.hateful_memes_prompt import HatefulMemesPrompt
 from hemm.utils.common_utils import shell_command
+from hemm.metrics.accuracy_metric import *
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -24,6 +27,8 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.kaggle_api_path = kaggle_api_path
         self.prompt = HatefulMemesPrompt()
+        self.metrics = [AccuracyMetric, PrecisionMetric, RecallMetric, 
+                        F1ScoreMetric, BertScoreMetric, BleuMetric]
     
     def load(self, kaggle_api_path):
         os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
@@ -38,11 +43,9 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric,
                          ) -> None:
         self.load(self.kaggle_api_path)
         self.model = model
-        self.metric = metric
         label_path = os.path.join(self.dataset_dir, 'data', self.evaluate_path)
         json_list = list(open(label_path, 'r'))
         image_dir = os.path.join(self.dataset_dir, 'data')
@@ -60,7 +63,11 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
                 predictions.append(0)
             ground_truth.append(json_obj['label'])
 
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            metric_val = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric_val
+        # results = self.metric.compute(ground_truth, predictions)
         return results
     
     def evaluate_dataset_batched(self,
@@ -70,7 +77,6 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
                          ) -> None:
         self.load(self.kaggle_api_path)
         self.model = model
-        self.metric = metric
         label_path = os.path.join(self.dataset_dir, 'data', self.evaluate_path)
         json_list = list(open(label_path, 'r'))
         image_dir = os.path.join(self.dataset_dir, 'data')
@@ -100,5 +106,11 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
                 predictions.append(1)
             else:
                 predictions.append(0)
-        results = self.metric.compute(ground_truth, predictions)
+        
+        results = {}
+        for metric in self.metrics:
+            metric_val = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric_val
+        # results = self.metric.compute(ground_truth, predictions)
         return results
+    

@@ -23,7 +23,6 @@ class HEMMDatasetEvaluator(abc.ABC):
 
     @abc.abstractmethod
     def evaluate_dataset(self,
-                         metrics: List[HEMMMetric],
                          ):
         """
         :param model: model which can evaluate on the whole dataset.
@@ -36,7 +35,7 @@ class HEMMDatasetEvaluator(abc.ABC):
         """
         download dataset script
         """
-
+    
     @abc.abstractmethod
     def evaluate_dataset_batched(self):
         """
