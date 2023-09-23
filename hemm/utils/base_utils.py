@@ -1,11 +1,5 @@
-import sys
-
-sys.path.append("/home/agoindan/HEMM/hemm/metrics")
-sys.path.append("/home/agoindan/HEMM/hemm/models")
-sys.path.append("/home/agoindan/HEMM/hemm/data")
-
 from hemm.metrics import accuracy_metric, bleu_metric, bertscore_metric
-from hemm.models import blip2_model, minigpt4_model, instruct_blip
+from hemm.models import blip2_model, minigpt4_model, instruct_blip, openflamingo_model
 from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_dataset, memotion_dataset, memecaps_dataset, irfl_dataset, scienceQA_dataset, vqa_dataset,vcr_dataset, ok_vqa_dataset, gqa_dataset, vqarad_dataset, pmcvqa_dataset, pathvqa_dataset, rsicd_dataset, ucmerced_dataset, resisc45_dataset,winogroundVQA_dataset,nlvr2,nlvr_dataset, faceemotion_dataset,cocoqa_dataset,visualgenome_dataset
 
 def load_model(model_key):
@@ -13,6 +7,7 @@ def load_model(model_key):
         'minigpt4': minigpt4_model.MiniGPT4(),
         'blip2':blip2_model.BLIP2(model_type='pretrain_flant5xxl'),
         'instruct_blip':instruct_blip.InstructBlip(model_type="vicuna7b"),
+        'openflamingo': openflamingo_model.OpenFlamingoModel()
     }
     return model_dict[model_key]
 
