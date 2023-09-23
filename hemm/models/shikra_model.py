@@ -13,7 +13,7 @@ from hemm.utils.common_utils import shell_command
 from hemm.models.open_flamingo.open_flamingo import create_model_and_transforms
 from hemm.models.open_flamingo.open_flamingo.eval.utils import unwrap_model, get_autocast, get_cast_dtype
 
-class OpenFlamingoModel(HEMMModel):
+class ShikraModel(HEMMModel):
     def __init__(self,
                  ) -> None:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
