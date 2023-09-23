@@ -59,3 +59,4 @@ bert_score
 openpyxl
 einops
 einops-exts
+open_clip_torch>=2.16.0 

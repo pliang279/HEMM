@@ -4,6 +4,7 @@ from typing import Optional, Union, List
 from PIL import Image
 from huggingface_hub import hf_hub_download
 import torch
+import re
 
 from hemm.models.model import HEMMModel
 from hemm.utils.common_utils import shell_command
@@ -20,7 +21,6 @@ class OpenFlamingoModel(HEMMModel):
         Loads the model and it's processor with the initialized weight directory
         :return:
         """
-        shell_command()
         model, image_processor, tokenizer = create_model_and_transforms(
             clip_vision_encoder_path="ViT-L-14",
             clip_vision_encoder_pretrained="openai",
@@ -73,6 +73,8 @@ class OpenFlamingoModel(HEMMModel):
         )
 
         decoded_text =  self.tokenizer.decode(generated_text[0])
+        decoded_text = decoded_text.replace(text, '')
+        decoded_text = decoded_text.replace('<image>', '')
         return decoded_text
     
     def generate_batch(self, 
@@ -83,4 +85,17 @@ class OpenFlamingoModel(HEMMModel):
         """
         Batching logic for the model
         """
-        pass
+
+    def answer_extractor(self, text, dataset_key):
+        if dataset_key == 'hateful_memes' or dataset_key =='newyorkercartoon' or dataset_key =='irfl':
+            text = text[:3]
+            text = text.lower().strip()
+            text = ''.join(filter(str.isalpha, text.lower()))
+            return text
+        elif dataset_key == 'memotion' or dataset_key == 'face_emotion'  or dataset_key == 'scienceqa' or dataset_key == 'vcr':
+            match = re.search(r"\b\d\b", text)
+            if match:
+                first_number = int(match.group())
+                return first_number
+            else:
+                return None
