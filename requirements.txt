@@ -57,3 +57,5 @@ opencv-python
 promptcap
 bert_score
 openpyxl
+einops
+einops-exts
