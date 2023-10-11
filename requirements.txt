@@ -59,6 +59,5 @@ openpyxl
 einops
 einops-exts
 open_clip_torch>=2.16.0 
-git+https://github.com/huggingface/transformers.git
 bert_score
 evaluate
