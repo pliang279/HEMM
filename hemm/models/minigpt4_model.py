@@ -120,7 +120,7 @@ class MiniGPT4(HEMMModel):
         image_tensor = self.chat.vis_processor(image).unsqueeze(0).to(self.chat.device)
         return image_tensor
 
-    def generate_batch_func(self, images, texts, batch_size, max_new_tokens=10, num_beams=3):
+    def generate_batch_func(self, images, texts, batch_size, max_new_tokens=512, num_beams=3):
         answers = []
         convs = [CONV_VISION.copy() for _ in range(batch_size)]
         [self.chat.ask('<Img><ImageHere></Img> {} '.format(text), conv) for conv, text in zip(convs, texts)]
