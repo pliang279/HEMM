@@ -11,6 +11,8 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.nocaps_prompt import NoCapsPrompt
 from hemm.utils.common_utils import shell_command
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -20,6 +22,7 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
         self.dataset_dir = dataset_dir
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.prompt = NoCapsPrompt()
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def get_prompt(self) -> str:
         prompt_text = self.prompt.format_prompt()
@@ -30,10 +33,8 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric,
                          ) -> None:
         self.load()
-        self.metric = metric
         self.model = model
         json_file = json.load(open(self.dataset_dir, 'r'))
         predictions = []
@@ -51,16 +52,16 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
-    
+ 
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ):
         self.load()
-        self.metric = metric
         self.model = model
         json_file = json.load(open(self.dataset_dir, 'r'))
         predictions = []
@@ -87,8 +88,12 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(image_caption)
         
         images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
+        images_tensor = images_tensor.to(self.model.device)
         predictions = self.model.generate_batch(images_tensor, texts, batch_size)
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
+        
         return results
+    

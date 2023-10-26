@@ -7,6 +7,8 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.enrico_prompt import EnricoPrompt
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class EnricoDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -19,13 +21,7 @@ class EnricoDatasetEvaluator(HEMMDatasetEvaluator):
         self.device = device
         self.prompt = EnricoPrompt()
         self.annotation_file = annotation_file
-
-    # def load(self):
-    #   os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
-    #   if not os.path.exists('landuse-scene-classification.zip'):
-    #       shell_command('kaggle datasets download -d apollo2506/landuse-scene-classification')
-    #   if not os.path.exists('ucmercedimages'):
-    #       shell_command('unzip landuse-scene-classification.zip -d ucmercedimages/')
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def load(self):
         pass
@@ -36,11 +32,9 @@ class EnricoDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric
                          ) -> None:
         self.load()
         self.model = model
-        self.metric = metric
         
         predictions = []
         ground_truth = []
@@ -49,7 +43,7 @@ class EnricoDatasetEvaluator(HEMMDatasetEvaluator):
             annotations = f.readlines()
         annotations = annotations[1:]
 
-        for row in tqdm(annotations, total=len(annotations)):
+        for row in tqdm(annotations, total=len(annotations)):            
             img_id, label = row.strip().split(",")
             image_path = f"{self.image_dir}/{img_id}.jpg"
             text = self.get_prompt()
@@ -57,17 +51,17 @@ class EnricoDatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(label)
         
-        results = self.metric.compute(ground_truth, predictions)
-        return results
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
+            return results
     
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ) -> None:
         self.load()
         self.model = model
-        self.metric = metric
         
         predictions = []
         ground_truth = []
@@ -90,9 +84,10 @@ class EnricoDatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(label)
         
         images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
+        images_tensor = images_tensor.to(self.model.device)
         predictions = self.model.generate_batch(images_tensor, texts, batch_size)
 
-        results = self.metric.compute(ground_truth, predictions)
-        return results
-        
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
+            return results

@@ -1,45 +1,92 @@
 import os
-import cv2
-import json
-import numpy as np
-from typing import Optional, Union
+from typing import Optional, Union, List
 from PIL import Image
 import torch
-from torch.utils.data import Dataset
+from tqdm import tqdm
+import json
 
-class SlakeVQA(Dataset):
-	def __init__(self,
-				 image_dir,
-				 vis_processor, 
-				 annotation_file,
-				 device,
-				 ):
-		self.image_dir = image_dir
-		all_annotation = json.load(open(annotation_file))
-		self.annotation = []
-		for ann in all_annotation:
-			if ann["q_lang"] == "en" and ann["answer_type"] == "CLOSED":
-				self.annotation.append(ann)
+from hemm.data.dataset import HEMMDatasetEvaluator
+from hemm.utils.common_utils import shell_command
+from hemm.prompts.slake_prompt import SlakePrompt
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
-		self.vis_processor = vis_processor
-		self.device = device
+class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
+    def __init__(self,
+                 image_dir='/work/agoindan/Slake1.0/imgs',
+                 annotation_file="/work/agoindan/Slake1.0/test.json",
+                 device="cpu",
+                 ):
+        super().__init__()
+        self.image_dir = image_dir
+        self.device = device
+        self.prompt = SlakePrompt()
+        self.metrics = [BertScoreMetric(), BleuMetric()]
+        all_annotation = json.load(open(annotation_file))
+        self.annotation = []
+        for ann in all_annotation:
+            if ann["q_lang"] == "en" and ann["answer_type"] == "CLOSED":
+                self.annotation.append(ann)
 
-	def __getitem__(self, index):
-		ann = self.annotation[index]
+    def load(self):
+        pass
 
-		gt = ann["answer"]
-		question = ann["question"]
-		img_name = f"{self.image_dir}/{ann['img_name']}"
+    def get_prompt(self, text):
+        prompt_text = self.prompt.format_prompt(text)
+        return prompt_text
 
-		prompt = f"Answer the question in a single word, Question: {question}"
-		img = Image.open(img_name).convert("RGB")
-		img = self.vis_processor["eval"](img).to(self.device)
+    def evaluate_dataset(self,
+                         model,
+                         ) -> None:
+        self.load()
+        self.model = model
+        
+        predictions = []
+        ground_truth = []
 
-		return {
-			"image": img, 
-			"prompt": prompt,
-			"gt": gt
-		}
+        for row in tqdm(self.annotation, total=len(self.annotation)):
+            label = row["answer"]
+            question = row["question"]
+            image_path = f"{self.image_dir}/{row['img_name']}"
+            text = self.get_prompt(question)
+            output = self.model.generate(text, image_path)
+            predictions.append(output)
+            ground_truth.append(label)
+        
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
+            return results
+    
+    def evaluate_dataset_batched(self,
+                         model,
+                         batch_size=32
+                         ) -> None:
+        self.load()
+        self.model = model
+        
+        predictions = []
+        ground_truth = []
 
-	def __len__(self):
-		return len(self.annotation)
+        texts = []
+        images = []
+
+        for row in tqdm(self.annotation, total=len(self.annotation)):
+            label = row["answer"]
+            question = row["question"]
+            image_path = f"{self.image_dir}/{row['img_name']}"
+            raw_image = Image.open(image_path).convert('RGB')
+            image = self.model.get_image_tensor(raw_image)
+            images.append(image)
+            text = self.get_prompt(question)
+            texts.append(text)
+            ground_truth.append(label)
+        
+        images_tensor = torch.cat(images, dim=0)
+        images_tensor = images_tensor.to(self.model.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
+            return results

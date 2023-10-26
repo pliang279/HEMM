@@ -12,6 +12,7 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.irfl_prompt import IRFLPrompt
 from hemm.utils.common_utils import shell_command
+from hemm.metrics.accuracy_metric import *
 
 class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -21,6 +22,7 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
         self.dataset_key = 'irfl'
         self.csv_path = csv_path
         self.prompt = IRFLPrompt()
+        self.metrics = [AccuracyMetric(), PrecisionMetric(), RecallMetric(), F1ScoreMetric()]
 
     def load(self):
         shell_command('git clone https://github.com/irfl-dataset/IRFL')
@@ -30,12 +32,10 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
         return prompt_text    
 
     def evaluate_dataset(self,
-                         metric,
                          model,
                          ) -> None:
 
         self.load()
-        self.metric = metric
         self.model = model
         df = pd.read_csv(self.csv_path)
         predictions = []
@@ -66,8 +66,15 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
                     predictions.append(0)
             except Exception as e:
                 continue
+
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
+        return results
         
         return sum(predictions) / len(predictions)
+    
+
     
     def evaluate_dataset_batched(self,
                          metric,

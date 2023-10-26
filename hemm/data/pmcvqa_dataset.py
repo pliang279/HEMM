@@ -11,7 +11,7 @@ import pandas as pd
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.pmcvqa_prompt import PMCVQAPrompt
-
+from hemm.metrics.accuracy_metric import *
 
 class PMCVQADatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -20,6 +20,7 @@ class PMCVQADatasetEvaluator(HEMMDatasetEvaluator):
         super().__init__()
         self.dataset_dir = dataset_dir
         self.prompt = PMCVQAPrompt()
+        self.metrics = [AccuracyMetric(), PrecisionMetric(), RecallMetric(), F1ScoreMetric()]
 
     def load(self):
       if not os.path.exists('images.zip'):
@@ -36,11 +37,9 @@ class PMCVQADatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric
                          ) -> None:
         self.load()
         self.model = model
-        self.metric = metric
         
         self.annotation_file = 'test_clean.csv'
         self.image_dir = 'pmvcqa'
@@ -59,5 +58,8 @@ class PMCVQADatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(ground_truth_answer)
             predictions.append(output)
 
-        results = self.metric.compute(ground_truth, predictions)
-        return results
+        results = {}
+        for metric in self.metrics:
+          results[metric.name] = metric.compute(ground_truth, predictions)
+          return results
+        

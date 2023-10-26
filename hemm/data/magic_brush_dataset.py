@@ -7,7 +7,8 @@ from tqdm import tqdm
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
-from hemm.prompts.enrico_prompt import MagicBrushPrompt
+from hemm.prompts.magic_brush_prompt import MagicBrushPrompt
+from hemm.metrics.image_match_metric import MSEMetric, CLIPIMetric
 
 class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -21,12 +22,8 @@ class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
         self.prompt = MagicBrushPrompt()
         self.annotation_file = annotation_file
 
-    # def load(self):
-    #   os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
-    #   if not os.path.exists('landuse-scene-classification.zip'):
-    #       shell_command('kaggle datasets download -d apollo2506/landuse-scene-classification')
-    #   if not os.path.exists('ucmercedimages'):
-    #       shell_command('unzip landuse-scene-classification.zip -d ucmercedimages/')
+        # TODO
+        self.metrics = [MSEMetric(), CLIPIMetric(self.device)]
 
     def load(self):
         pass
@@ -37,27 +34,31 @@ class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric
                          ) -> None:
         self.load()
         self.model = model
-        self.metric = metric
         
         predictions = []
         ground_truth = []
 
-        annotations = json.load(self.annotation_file)
+        annotations = json.load(open(self.annotation_file))
+        idx = 0
         for img_id in annotations:
             ann = annotations[img_id]
             for sample in ann:
+                if idx == 10:
+                    break
                 input_img = f"{self.image_dir}/{img_id}/{sample['input']}"
                 text = self.get_prompt(sample['instruction'])
                 gt_img = f"{self.image_dir}/{img_id}/{sample['output']}"
-                pred_img = self.model.generate(text, input_img)
+                pred_img = self.model.generate_image(text, input_img)
                 predictions.append(gt_img)
                 ground_truth.append(pred_img)
+                idx += 1
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
     
     def evaluate_dataset_batched(self):

@@ -1,31 +1,46 @@
 from typing import Optional, Union
-
 import torch
 from PIL import Image
 import re
 from hemm.models.model import HEMMModel
-from lavis.models import load_model_and_preprocess
 from tqdm import tqdm
+from hemm.models.gill import models
 
-class BLIP2(HEMMModel):
+class GILL(HEMMModel):
 	def __init__(self,
-				 model_type: str,
+				 model_dir="/home/agoindan/gill/checkpoints/gill_opt/"
 				 ):
 		super().__init__()
-		self.model_type = model_type
+		self.model_dir = model_dir
 		self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 	def load_weights(self):
-		self.model, self.processor, _ = load_model_and_preprocess(
-			name="blip2_t5", model_type=self.model_type, is_eval=True, device=self.device)
+		self.model = models.load_gill(self.model_dir)
 
-	def generate(self,
+	def generate_image(self,
 				text: Optional[str],
 				image,
-			) -> str:
+				):
 		image = Image.open(image).convert("RGB")
-		processed_image = self.processor["eval"](image).unsqueeze(0).to(self.device)
-		generated_text = self.model.generate({"image": processed_image, "prompt":text})[0].strip()
+		prompts = [image, text]
+		g_cuda = torch.Generator(device=self.device)
+		outputs = self.model.generate_for_images_and_texts(prompts, 
+													 num_words=2,
+													 ret_scale_factor=100.0,
+													 generator=g_cuda)
+		if outputs[1]['decision'][0] == 'gen':
+			return outputs[1]['gen'][0][0]
+		
+		return outputs[1]['ret'][0][0]
+
+	def generate(self, 
+					text: str,
+					image):
+		image = Image.open(image).convert("RGB")
+		prompts = [image, text]
+		outputs = self.model.generate_for_images_and_texts(prompts, num_words=100, min_word_tokens=100, top_p=0.95, temperature=0.6)
+
+		generated_text = outputs[0]
 		return generated_text
 
 	def answer_extractor(self, text, dataset_key):
@@ -43,20 +58,12 @@ class BLIP2(HEMMModel):
 				return None
 	
 	def get_image_tensor(self, image):
-		img = self.processor["eval"](image).unsqueeze(0).to(self.device)
-		return img
+		pass
 
 	def generate_batch(self, 
 					   images,
 					   texts, 
 					   batch_size, 
 					   ):
-		answers = []
-		for i in tqdm(range(0, len(texts), batch_size)):
-			img_batch = images[i : i + batch_size]
-			text_batch = texts[i : i + batch_size]
-			generated_text = self.model.generate({"image":img_batch, "prompt":text_batch})
-			answers += generated_text
-				
-		return answers
+		pass
 	

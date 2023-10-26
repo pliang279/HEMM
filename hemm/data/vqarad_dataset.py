@@ -10,7 +10,8 @@ from datasets import load_dataset
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.vqarad_prompt import VQARADPrompt
-
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -19,10 +20,11 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
         super().__init__()
         self.dataset_dir = dataset_dir
         self.prompt = VQARADPrompt()
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def load(self):
-      self.dataset = load_dataset("flaviagiammarino/vqa-rad")
-      self.dataset = self.dataset['test']
+        self.dataset = load_dataset("flaviagiammarino/vqa-rad")
+        self.dataset = self.dataset['test']
 
     def get_prompt(self, text):
         prompt_text = self.prompt.format_prompt(text)
@@ -30,11 +32,9 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric
                          ) -> None:
         self.load()
         self.model = model
-        self.metric = metric
         
         predictions = []
         ground_truth = []
@@ -51,17 +51,17 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
 
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ):
         self.load()
         self.model = model
-        self.metric = metric
         
         predictions = []
         ground_truth = []
@@ -83,7 +83,12 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(ground_truth_answer)
         
         images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
+        images_tensor = images_tensor.to(self.model.device)
         predictions = self.model.generate_batch(images_tensor, texts, batch_size)
-        results = self.metric.compute(ground_truth, predictions)
+        
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
+
         return results
+        

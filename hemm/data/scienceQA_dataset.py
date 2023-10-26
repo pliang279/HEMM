@@ -11,6 +11,8 @@ import random
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.scienceqa_prompt import ScienceQAPrompt
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -18,7 +20,9 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
         super().__init__()
         self.dataset_key = 'scienceqa'
         self.prompt = ScienceQAPrompt()
-    
+        self.metrics = [BertScoreMetric(), BleuMetric()]
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+ 
     def get_prompt(self, question_s, choices, lecture, context) -> str:
         prompt_text = self.prompt.format_prompt(question_s, choices, lecture, context)
         return prompt_text
@@ -29,11 +33,9 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric,
                          ) -> None:
         
         self.load()
-        self.metric = metric
         self.model = model
         predictions = []
         ground_truth = []
@@ -62,17 +64,18 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             
             ans = self.model.generate(question, image_path)
             predictions.append(ans)
-        results = self.metric.compute(ground_truth, predictions)
+        
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
     
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ) -> None:
         
         self.load()
-        self.metric = metric
         self.model = model
         predictions = []
         ground_truth = []
@@ -107,7 +110,11 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             images.append(image)
 
         images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
-        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
-        results = self.metric.compute(ground_truth, outputs)
+        images_tensor = images_tensor.to(self.model.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+        
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
+    

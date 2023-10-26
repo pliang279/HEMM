@@ -12,6 +12,8 @@ from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.face_emotion_prompt import FaceEmotionPrompt
 from hemm.utils.common_utils import shell_command
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -25,6 +27,7 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
         self.kaggle_api_path = kaggle_api_path
         self.prompt = FaceEmotionPrompt()
         self.choices = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def get_prompt(self) -> str:
         prompt_text = self.prompt.format_prompt()
@@ -40,10 +43,8 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric,
                          ) -> None:
         self.load(self.kaggle_api_path)
-        self.metric = metric
         self.model = model
         
         predictions = []
@@ -56,25 +57,25 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
         
         data_dict_list = list(data_dict.items())
         random.shuffle(data_dict_list)
-        data_dict_shuffled = dict(data_dict_list) 
-        
+        data_dict_shuffled = dict(data_dict_list)
+ 
         for img, gt in tqdm(data_dict_shuffled.items(), total=len(data_dict_shuffled.keys())):
             image_path = os.path.join(self.data_path, gt, img)
-            ground_truth.append(self.choices.index(gt))
+            ground_truth.append(gt)
             text = self.get_prompt()
             output = self.model.generate(text, image_path)
             predictions.append(output)
 
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
 
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ) -> None:
         self.load(self.kaggle_api_path)
-        self.metric = metric
         self.model = model
         
         ground_truth = []
@@ -89,10 +90,10 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
         data_dict_list = list(data_dict.items())
         random.shuffle(data_dict_list)
         data_dict_shuffled = dict(data_dict_list) 
-        
+
         for img, gt in tqdm(data_dict_shuffled.items(), total=len(data_dict_shuffled.keys())):
             image_path = os.path.join(self.data_path, gt, img)
-            ground_truth.append(self.choices.index(gt))
+            ground_truth.append(gt)
             text = self.get_prompt()
             texts.append(text)
             
@@ -101,8 +102,11 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
             images.append(image)
 
         images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
-        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+        images_tensor = images_tensor.to(self.model.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
 
-        results = self.metric.compute(ground_truth, outputs)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
+    

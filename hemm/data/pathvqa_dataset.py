@@ -13,11 +13,14 @@ from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.pathvqa_prompt import PathVQAPrompt
 from hemm.utils.common_utils import shell_command
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
                  ):
         self.prompt = PathVQAPrompt()
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)
@@ -25,16 +28,14 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
 
     def load(self):
         if not os.path.exists('Backup'):
-          shell_command('gdown --no-check-certificate --folder https://drive.google.com/drive/folders/1G2C2_FUCyYQKCkSeCRRiTTsLDvOAjFj5')
+            shell_command('gdown --no-check-certificate --folder https://drive.google.com/drive/folders/1G2C2_FUCyYQKCkSeCRRiTTsLDvOAjFj5')
         if not os.path.exists('pathvqa_images'):
-          shell_command('unzip Backup/pvqa.zip -d pathvqa_images/')
+            shell_command('unzip Backup/pvqa.zip -d pathvqa_images/')
         
     def evaluate_dataset(self,
                          model,
-                         metric,
                          ) -> None:
         self.load()
-        self.metric = metric
         self.model = model
         
         images_dir = os.path.join('pathvqa_images','pvqa','images','test')
@@ -52,16 +53,16 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
 
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ):
         self.load()
-        self.metric = metric
         self.model = model
         
         images_dir = os.path.join('pathvqa_images','pvqa','images','test')
@@ -86,8 +87,10 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(ground_truth_answer)
         
         images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
+        images_tensor = images_tensor.to(self.model.device)
         predictions = self.model.generate_batch(images_tensor, texts, batch_size)
 
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results

@@ -5,9 +5,13 @@ from typing import Optional, Union, List
 from PIL import Image
 import torch
 from torch.utils.data import Dataset, DataLoader
-# from hemm.data.dataset import HEMMDatasetEvaluator
-# from hemm.metrics.metric import HEMMMetric
-# from hemm.utils.evaluator_mixin import EvaluatorMixin
+
+from hemm.data.dataset import HEMMDatasetEvaluator
+from hemm.metrics.metric import HEMMMetric
+from hemm.prompts.face_emotion_prompt import FaceEmotionPrompt
+from hemm.utils.common_utils import shell_command
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class Flickr30k(Dataset):
 	def __init__(self,

@@ -11,6 +11,8 @@ from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.vcr_prompt import VCRPrompt
 from hemm.utils.common_utils import shell_command
 from ast import literal_eval
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 	def __init__(self,
@@ -20,6 +22,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		self.image_dir = 'vcr_images/vcr1images/'
 		self.prompt = VCRPrompt()
 		self.dataset_key = 'vcr'
+		self.metrics = [BertScoreMetric(), BleuMetric()]
 
 	def load(self):
 		if not os.path.exists('vcr1images.zip'):
@@ -76,11 +79,9 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 
 	def evaluate_dataset(self,
 						 model,
-						 metric,
 						 ) -> None:
 		self.load()
 		self.model = model
-		self.metric = metric
 
 		with open(self.annotation_file) as f:
 			self.annotations = f.readlines()
@@ -88,6 +89,9 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		predictions = []
 		ground_truth = []
 		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
+			print(i)
+			if i == 100:
+				break
 			ann = literal_eval(self.annotations[i])
 			question = self.fix_tokenization(ann["question"], ann["objects"])
 			new_answer_choices = []
@@ -119,17 +123,18 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth.append(ann["answer_label"])
 			predictions.append(answer)
 			
-		results = self.metric.compute(ground_truth, predictions)
+		results = {}
+		for metric in self.metrics:
+			results[metric.name] = metric.compute(ground_truth, predictions)
+			
 		return results
 
 	def evaluate_dataset_batched(self,
 						 model,
-						 metric,
 						 batch_size = 32
 						 ):
 		self.load()
 		self.model = model
-		self.metric = metric
 
 		texts = []
 		images = []
@@ -139,6 +144,9 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 
 		ground_truth = []
 		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
+			print(i)
+			if i == 100:
+				break
 			ann = literal_eval(self.annotations[i])
 			question = self.fix_tokenization(ann["question"], ann["objects"])
 			new_answer_choices = []
@@ -173,8 +181,11 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth.append(ann["answer_label"])
 			
 		images_tensor = torch.cat(images, dim=0)
-		images_tensor = images_tensor.to(self.model.chat.device)
-		outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+		images_tensor = images_tensor.to(self.model.device)
+		predictions = self.model.generate_batch(images_tensor, texts, batch_size)
 
-		results = self.metric.compute(ground_truth, outputs)
+		results = {}
+		for metric in self.metrics:
+			results[metric.name] = metric.compute(ground_truth, predictions)
 		return results
+	

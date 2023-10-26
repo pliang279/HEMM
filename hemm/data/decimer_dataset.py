@@ -7,6 +7,8 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.decimer_prompt import DecimerPrompt
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -19,6 +21,7 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
         self.device = device
         self.prompt = DecimerPrompt()
         self.annotation_file = annotation_file
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     # def load(self):
     #   os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
@@ -36,11 +39,9 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric
                          ) -> None:
         self.load()
         self.model = model
-        self.metric = metric
         
         predictions = []
         ground_truth = []
@@ -57,17 +58,17 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(label)
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
     
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ) -> None:
         self.load()
         self.model = model
-        self.metric = metric
         
         predictions = []
         ground_truth = []
@@ -93,6 +94,8 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
         images_tensor = images_tensor.to(self.model.chat.device)
         predictions = self.model.generate_batch(images_tensor, texts, batch_size)
 
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
         

@@ -12,6 +12,8 @@ from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.memotion_prompt import MemotionPrompt
 from hemm.utils.common_utils import shell_command
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -27,6 +29,7 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
         self.kaggle_api_path = kaggle_api_path
         self.prompt = MemotionPrompt()
         self.choices = ['funny', 'very_funny', 'not_funny', 'hilarious']
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def get_prompt(self, caption) -> str:
         prompt_text = self.prompt.format_prompt(caption)
@@ -41,10 +44,8 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric,
                          ) -> None:
         self.load(self.kaggle_api_path)
-        self.metric = metric
         self.model = model
         df = pd.read_excel(self.data_path)
         predictions = []
@@ -53,21 +54,21 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             image_path = os.path.join(self.image_dir, row['image_name'])
             caption = row['text_corrected']
             gt_label = row['humour']
-            ground_truth.append(self.choices.index(gt_label))
+            ground_truth.append(gt_label)
             text = self.get_prompt(caption)
             output = self.model.generate(text, image_path)
             predictions.append(output)
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
 
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ):
         self.load(self.kaggle_api_path)
-        self.metric = metric
         self.model = model
         df = pd.read_excel(self.data_path)
         ground_truth = []
@@ -77,7 +78,7 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             image_path = os.path.join(self.image_dir, row['image_name'])
             caption = row['text_corrected']
             gt_label = row['humour']
-            ground_truth.append(self.choices.index(gt_label))
+            ground_truth.append(gt_label)
 
             raw_image = Image.open(image_path).convert('RGB')
             image = self.model.get_image_tensor(raw_image)
@@ -87,8 +88,11 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
 
         images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
-        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+        images_tensor = images_tensor.to(self.model.device)
+        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
         
-        results = self.metric.compute(ground_truth, outputs)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
+    

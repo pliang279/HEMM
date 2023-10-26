@@ -9,6 +9,8 @@ from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.vqa_prompt import VQAPrompt
 import ast
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class VQADatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -17,6 +19,7 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
         super().__init__()
         self.dataset_dir = dataset_dir
         self.prompt = VQAPrompt()
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def load(self):
       if not os.path.exists('Annotations_Val_abstract_v002.zip'):
@@ -46,11 +49,9 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric
                          ) -> None:
         self.load()
         self.model = model
-        self.metric = metric
         image_dir = 'vqa_images'
         annotation_file = json.load(open(os.path.join('vqa_annotations', 'abstract_v002_val2015_annotations.json'), 'r'))
         question_file = json.load(open(os.path.join('vqa_questions', 'OpenEnded_abstract_v002_val2015_questions.json'), 'r'))
@@ -66,16 +67,17 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+           results[metric.name] = metric.compute(ground_truth, predictions)
+        
         return results
     
     def evaluate_dataset_batched(self,
                                  model,
-                                metric,
                                 batch_size = 32
                                 ):
       self.load()
-      self.metric = metric
       self.model = model
       texts = []
       images = []
@@ -96,8 +98,11 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
           ground_truth.append(ground_truth_answer)
 
       images_tensor = torch.cat(images, dim=0)
-      images_tensor = images_tensor.to(self.model.chat.device)
+      images_tensor = images_tensor.to(self.model.device)
       predictions = self.model.generate_batch(images_tensor, texts, batch_size)
 
-      results = self.metric.compute(ground_truth, predictions)
+      results = {}
+      for metric in self.metrics:
+        results[metric.name] = metric.compute(ground_truth, predictions)
+      
       return results

@@ -25,12 +25,12 @@ def parse_args():
         "in xxx=yyy format will be merged into config file (deprecate), "
         "change to --cfg-options instead.",
     )
-    args = parser.parse_args(["--cfg-path", "hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml"])
+    args = parser.parse_args(["--cfg-path", "/home/agoindan/HEMM/hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml"])
     return args
 
 class MiniGPT4(HEMMModel):
     def __init__(self):
-        pass
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     def load_weights(self):
         # if not os.path.exists('MiniGPT-4'):
@@ -39,25 +39,25 @@ class MiniGPT4(HEMMModel):
             shell_command('wget https://huggingface.co/wangrongsheng/MiniGPT4-7B/resolve/main/prerained_minigpt4_7b.pth')
 
         # Read in the file
-        with open('hemm/models/minigpt4/configs/models/minigpt4.yaml', 'r') as file:
+        with open('/home/agoindan/HEMM/hemm/models/minigpt4/configs/models/minigpt4.yaml', 'r') as file:
             filedata = file.read()
 
         # Replace the target string
         filedata = filedata.replace('/path/to/vicuna/weights/', 'wangrongsheng/MiniGPT-4-LLaMA-7B')
 
         # Write the file out again
-        with open('hemm/models/minigpt4/configs/models/minigpt4.yaml', 'w') as file:
+        with open('/home/agoindan/HEMM/hemm/models/minigpt4/configs/models/minigpt4.yaml', 'w') as file:
             file.write(filedata)
 
         # Read in the file
-        with open('hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml', 'r') as file:
+        with open('/home/agoindan/HEMM/hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml', 'r') as file:
             filedata = file.read()
 
         # Replace the target string
         filedata = filedata.replace('/path/to/pretrained/ckpt/', 'prerained_minigpt4_7b.pth')
 
         # Write the file out again
-        with open('hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml', 'w') as file:
+        with open('/home/agoindan/HEMM/hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml', 'w') as file:
             file.write(filedata)
         
         args = parse_args()

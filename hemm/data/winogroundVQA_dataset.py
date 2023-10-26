@@ -12,16 +12,18 @@ from hemm.metrics.metric import HEMMMetric
 class WinogroundVQA(Dataset):
     def __init__(self,
                  questions_file,
-                 device,
+                 hf_auth_token="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",
+                 device="cuda",
                  ):
-        self.image_dir = load_dataset("facebook/winoground", use_auth_token=auth_token)['test']
-        self.questions = load_dataset("csv", data_files=questions_file)['train']
+        self.image_dir = load_dataset("facebook/winoground", use_auth_token=hf_auth_token)['test']
+        self.questions = load_dataset("csv", data_files="/content/drive/MyDrive/holistic_eval_winoground/winoground_vqa.csv")['train']
         self.device = device
         self.prompt = WinogroundVQAprompt()
                      
     def get_prompt(self, text):
         prompt_text = self.prompt.format_prompt(text)
-        return prompt_text    
+        return prompt_text
+        
     def __getitem__(self, index):
         res = []
         for pair in ((0,0), (0,1), (1,0), (1,1)):

@@ -6,9 +6,9 @@ model:
   max_txt_len: 160
   end_sym: "###"
   low_resource: True
-  prompt_path: "hemm/models/minigpt4/prompts/alignment.txt"
+  prompt_path: "/home/agoindan/HEMM/hemm/models/minigpt4/prompts/alignment.txt"
   prompt_template: '###Human: {} ###Assistant: '
-  ckpt: '/path/to/pretrained/ckpt/'
+  ckpt: 'prerained_minigpt4_7b.pth'
 
 
 datasets:

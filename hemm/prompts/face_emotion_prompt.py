@@ -1,6 +1,7 @@
 class FaceEmotionPrompt:
     def __init__(self):
-        self.prompt = "Question: Given the face photo is the expression angry, disgust, fear, happy, neutral, sad, surprise. Answer with option choice."
+        self.prompt = "Given the photo of a face, determinte the face expression, choose from the following choices: angry, disgust, fear, happy, neutral, sad, surprise. Answer in a single word."
 
     def format_prompt(self):
         return self.prompt
+    

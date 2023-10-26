@@ -26,7 +26,7 @@ class RecallMetric(HEMMMetric):
 
 class F1ScoreMetric(HEMMMetric):
     def compute(self, 
-                       ground_truth, 
+                    ground_truth, 
                        predictions):
         self.name = "F1-Score"
         return f1_score(predictions, ground_truth, average="macro")

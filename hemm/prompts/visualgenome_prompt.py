@@ -15,3 +15,4 @@ class visualgenomeprompt:
 
     def format_prompt(self, text):
         return self.prompt.format(text)
+    

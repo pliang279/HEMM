@@ -11,6 +11,7 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.newyorkercartoon_prompt import NewYorkerCartoonPrompt
 from hemm.utils.common_utils import shell_command
+from hemm.metrics.accuracy_metric import * 
 
 class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -26,6 +27,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         self.caption_dir = os.path.join(self.dataset_dir, 'summaries')
         self.csv_path_suffix_1 = 'LilUCB'
         self.csv_path_suffix_2 = 'lil-KLUCB'
+        self.metrics = [AccuracyMetric(), PrecisionMetric(), RecallMetric(), F1ScoreMetric()]
 
     def load(self):
         shell_command('git clone https://github.com/nextml/caption-contest-data')
@@ -36,10 +38,8 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric,
                          ) -> None:
         self.load()
-        self.metric = metric
         self.model = model
         predictions = []
         ground_truth = []
@@ -74,21 +74,22 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
                 else:
                     predictions.append(0)
         
-        results = self.metric.compute(ground_truth, predictions)
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
         return results
     
     def evaluate_dataset_batched(self,
                                 model,
-                                metric,
                                 batch_size = 32
                                 ):
         self.load()
-        self.metric = metric
         self.model = model
         texts = []
         images = []
         ground_truth_list = []
         predictions = []
+        print(len(os.listdir(self.image_dir)))
         for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
             img_id = img.split('.jpg')[0]
             img_path = os.path.join(self.image_dir, img)
@@ -116,14 +117,20 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
                 else:
                     ground_truth_list.append(0)
         
+        print(len(images))
+        import pickle 
+        pickle.dump(images, open("./temp.pkl", "wb"))
+        print(type(images))
         images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
+        images_tensor = images_tensor.to(self.model.device)
         outputs = self.model.generate_batch(images_tensor, texts, batch_size)
         for answer in outputs:
             if answer == 'yes':
                 predictions.append(1)
             else:
                 predictions.append(0)
-            
-        results = self.metric.compute(ground_truth_list, predictions)
-        return results
+
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth_list, predictions)
+        return results    

@@ -15,7 +15,7 @@ class InstructBlip(HEMMModel):
 		self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 	def load_weights(self):
-		self.model, self.vis_processors, _ = load_model_and_preprocess(name="blip2_vicuna_instruct", 
+		self.model, self.vis_processors, _ = load_model_and_preprocess(name="blip2_t5_instruct", 
 																 		model_type=self.model_type, 
 																		is_eval=True, 
 																		device=self.device)
@@ -24,7 +24,11 @@ class InstructBlip(HEMMModel):
 				text: Optional[str],
 				image,
 			) -> str:
-		raw_image = Image.open(image).convert("RGB")
+		if not isinstance(image, Image.Image):
+			raw_image = Image.open(image).convert("RGB")
+		else:
+			raw_image = image
+		
 		image = self.vis_processors["eval"](raw_image).unsqueeze(0).to(self.device)
 		generated_text = self.model.generate({"image":image, "prompt":text})
 		return generated_text[0]
@@ -32,6 +36,9 @@ class InstructBlip(HEMMModel):
 	def get_image_tensor(self, image):
 		img = self.vis_processors["eval"](image).unsqueeze(0).to(self.device)
 		return img
+	
+	def answer_extractor(self, text, dataset_key):
+		return text
 
 	def generate_batch(self, 
 					   images,

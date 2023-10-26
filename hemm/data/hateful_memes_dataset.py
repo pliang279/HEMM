@@ -27,8 +27,8 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.kaggle_api_path = kaggle_api_path
         self.prompt = HatefulMemesPrompt()
-        self.metrics = [AccuracyMetric, PrecisionMetric, RecallMetric, 
-                        F1ScoreMetric, BertScoreMetric, BleuMetric]
+        self.metrics = [AccuracyMetric(), PrecisionMetric(), RecallMetric(), 
+                        F1ScoreMetric()]
     
     def load(self, kaggle_api_path):
         os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
@@ -69,10 +69,9 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
             results[metric.name] = metric_val
         # results = self.metric.compute(ground_truth, predictions)
         return results
-    
+     
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ) -> None:
         self.load(self.kaggle_api_path)
@@ -98,7 +97,8 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(json_obj['label'])
 
         images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
+        images_tensor = images_tensor.to(self.model.device)
+
         outputs = self.model.generate_batch(images_tensor, texts, batch_size)
         for output in outputs:
             answer = self.model.answer_extractor(output, self.dataset_key)

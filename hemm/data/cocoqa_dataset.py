@@ -18,6 +18,8 @@ import pandas as pd
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.cocoqa_prompt import cocoprompt
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class cocoqaEvaluator(HEMMDatasetEvaluator):
 	def __init__(self,
@@ -28,34 +30,41 @@ class cocoqaEvaluator(HEMMDatasetEvaluator):
 		self.device = device
 		self.prompt = cocoprompt()
 		self.questions_file = questions_file
+		self.metrics = [BertScoreMetric(), BleuMetric()]
 
-		def get_prompt(self, text):
-			prompt_text = self.prompt.format_prompt(text)
-			return prompt_text
+	def get_prompt(self, text):
+		prompt_text = self.prompt.format_prompt(text)
+		return prompt_text
 
-		def evaluate_dataset(self,
-						 model,
-						 metric
-						 ) -> None:
-			self.load()
-			self.model = model
-			self.metric = metric
+	def evaluate_dataset(self,
+						model,
+						) -> None:
+		self.load()
+		self.model = model
 
-			predictions = []
-			ground_truth = []
+		predictions = []
+		ground_truth = []
 
-			df = pd.read_csv(self.questions_file)
-			df.drop(['Unnamed: 0'],axis=1,inplace=True)
-			for i in range(len(df)):
-				img_id=df['final_image_id'][i]
-				url=f"http://images.cocodataset.org/train2017/{img_id}.jpg"
-				image=Image.open(requests.get(url, stream=True).raw)
-				question=df['question_count'][i]
-				question_prompt=self.get_prompt(question)
-				output = self.model.generate(question_prompt, image)
-				predictions.append(output)
-				ground_truth.append(df['answer_count'][i])
+		df = pd.read_csv(self.questions_file)
+		df.drop(['Unnamed: 0'],axis=1,inplace=True)
+		for i in range(len(df)):
+			img_id=df['final_image_id'][i]
+			url=f"http://images.cocodataset.org/train2017/{img_id}.jpg"
+			image=Image.open(requests.get(url, stream=True).raw)
+			question=df['question_count'][i]
+			question_prompt=self.get_prompt(question)
+			output = self.model.generate(question_prompt, image)
+			predictions.append(output)
+			ground_truth.append(df['answer_count'][i])
 
-
-			results = self.metric.compute(ground_truth, predictions)
+		results = {}
+		for metric in self.metrics:
+			results[metric.name] = metric.compute(ground_truth, predictions)
 			return results
+	
+	def load(self):
+		pass
+
+	def evaluate_dataset_batched(self):
+		pass
+	

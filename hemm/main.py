@@ -22,5 +22,6 @@ dataset_evaluator = load_dataset_evaluator(dataset_name, kaggle_api_path="/home/
 
 print("Dataset Loaded")
 
-results = dataset_evaluator.evaluate_dataset(model=model)
+# results = dataset_evaluator.evaluate_dataset(model=model)
+results = dataset_evaluator.evaluate_dataset_batched(model=model)
 print(results)
