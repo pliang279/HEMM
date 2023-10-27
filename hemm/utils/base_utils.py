@@ -21,7 +21,8 @@ def load_metric(metric_key):
     metric_dict = {
         'accuracy':accuracy_metric.AccuracyMetric(),
         'bleu_score':bleu_metric.BleuMetric(),
-        'bertscore':bertscore_metric.BertScoreMetric()
+        'bertscore':bertscore_metric.BertScoreMetric(),
+        'cider':cider_metric.CiderMetric()
     }
     return metric_dict[metric_key]
 
@@ -56,6 +57,9 @@ def load_dataset_evaluator(dataset_key, kaggle_api_path=None):
             kaggle_api_path=kaggle_api_path
         ),
         'face_emotion': faceemotion_dataset.FaceEmotionDatasetEvaluator(
+            kaggle_api_path=kaggle_api_path
+        ),
+        'screen2words':screen2words_dataset.Screen2WordsDatasetEvaluator(
             kaggle_api_path=kaggle_api_path
         )
     }
