@@ -68,7 +68,7 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
         results = {}
         for metric in self.metrics:
             results[metric.name] = metric.compute(ground_truth, predictions)
-        return results
+        return predictions, results
     
     def evaluate_dataset_batched(self,
                          model,
@@ -109,12 +109,10 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
 
-        images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.device)
-        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+        predictions = self.predict_batched(images, texts, batch_size)
         
         results = {}
         for metric in self.metrics:
             results[metric.name] = metric.compute(ground_truth, predictions)
-        return results
+        return predictions, results
     

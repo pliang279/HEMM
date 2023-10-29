@@ -49,6 +49,8 @@ class Flickr30kDatasetEvaluator(HEMMDatasetEvaluator):
 		ground_truth = []
 
 		for i, ann in tqdm(enumerate(self.annotation), total=len(self.annotation)):
+			if i == 8:
+				break
 			image_path = f"{self.image_dir}/{ann['image'].split('/')[-1]}"
 			ground_truth.append(ann["caption"][0])
 			text = self.get_prompt()
@@ -58,7 +60,7 @@ class Flickr30kDatasetEvaluator(HEMMDatasetEvaluator):
 		results = {}
 		for metric in self.metrics:
 			results[metric.name] = metric.compute(ground_truth, predictions)
-		return results
+		return predictions, results
 
 	def evaluate_dataset_batched(self,
 						 model,
@@ -77,18 +79,16 @@ class Flickr30kDatasetEvaluator(HEMMDatasetEvaluator):
 			raw_image = Image.open(image_path).convert('RGB')
 			image = self.model.get_image_tensor(raw_image)
 			images.append(image)
-
 			ground_truth.append(ann["caption"][0])
 
 			text = self.get_prompt()
 			texts.append(text)
-			
-		images_tensor = torch.cat(images, dim=0)
-		images_tensor = images_tensor.to(self.model.device)
-		predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+
+		predictions = self.predict_batched(images, texts, batch_size)
 
 		results = {}
 		for metric in self.metrics:
 			results[metric.name] = metric.compute(ground_truth, predictions)
-		return results
+
+		return predictions, results
 	

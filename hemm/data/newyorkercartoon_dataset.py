@@ -43,6 +43,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         self.model = model
         predictions = []
         ground_truth = []
+        outputs = []
         for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
             img_id = img.split('.jpg')[0]
             img_path = os.path.join(self.image_dir, img)
@@ -62,6 +63,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
             for i in range(len(captions)):
                 text = self.get_prompt(captions[i])
                 output = self.model.generate(text, img_path)
+                outputs.append(output)
                 answer = self.model.answer_extractor(output, self.dataset_key)
 
                 if i == 0:
@@ -77,7 +79,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         results = {}
         for metric in self.metrics:
             results[metric.name] = metric.compute(ground_truth, predictions)
-        return results
+        return outputs, results
     
     def evaluate_dataset_batched(self,
                                 model,
@@ -121,9 +123,11 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         import pickle 
         pickle.dump(images, open("./temp.pkl", "wb"))
         print(type(images))
-        images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.device)
-        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+        # images_tensor = torch.cat(images, dim=0)
+        # images_tensor = images_tensor.to(self.model.device)
+        # outputs = self.model.generate_batch(images_tensor, texts, batch_size)
+        outputs = self.predict_batched(images, texts, batch_size)
+
         for answer in outputs:
             if answer == 'yes':
                 predictions.append(1)
@@ -133,4 +137,5 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         results = {}
         for metric in self.metrics:
             results[metric.name] = metric.compute(ground_truth_list, predictions)
-        return results    
+        
+        return outputs, results    

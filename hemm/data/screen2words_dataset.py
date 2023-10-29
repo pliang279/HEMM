@@ -12,6 +12,8 @@ import random
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.screen2words_prompt import Screen2WordsPrompt
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
 
 class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -22,6 +24,7 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
         self.dataset_dir = dataset_dir
         self.kaggle_api_path = kaggle_api_path
         self.prompt = Screen2WordsPrompt()
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def load(self):
         os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
@@ -42,12 +45,10 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric
                          ) -> None:
         self.load()
         self.model = model
-        self.metric = metric
-        
+
         predictions = []
         ground_truth = []
         
@@ -69,8 +70,11 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
         
-        results = self.metric.compute(ground_truth, predictions)
-        return results
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
+            
+        return predictions, results
 
     def evaluate_dataset_batched(self,
                          model,
@@ -107,9 +111,10 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
             images.append(image)
             ground_truth.append(ground_truth_answer)
         
-        images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.chat.device)
-        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+        predictions = self.predict_batched(images, texts, batch_size)
         
-        results = self.metric.compute(ground_truth, predictions)
-        return results
+        results = {}
+        for metric in self.metrics:
+            results[metric.name] = metric.compute(ground_truth, predictions)
+            
+        return predictions, results

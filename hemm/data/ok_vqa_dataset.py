@@ -80,7 +80,7 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 		results = {}
 		for metric in self.metrics:
 			results[metric.name] = metric.compute(ground_truth_list, predictions)
-		return results
+		return predictions, results
 	
 	def evaluate_dataset_batched(self,
 								model,
@@ -127,12 +127,11 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth_answer = ground_truth[i]['answers'][0]['raw_answer']
 			ground_truth_list.append(ground_truth_answer)
 
-		images_tensor = torch.cat(images, dim=0)
-		images_tensor = images_tensor.to(self.model.device)
-		predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+		predictions = self.predict_batched(images, texts, batch_size)
 
 		results = {}
 		for metric in self.metrics:
 			results[metric.name] = metric.compute(ground_truth_list, predictions)
-		return results
+		
+		return predictions, results
 	

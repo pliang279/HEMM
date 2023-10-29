@@ -55,12 +55,14 @@ class NLVRDatasetEvaluator(HEMMDatasetEvaluator):
         self.model = model
         predictions = []
         ground_truth = []
+        outputs = []
         for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
             img_id = img.split('.png')
             img_path = os.path.join(self.image_dir, img)
             sentence=self.sentences['sentence']
             text = self.get_prompt(sentence)
             output = self.model.generate(text, img_path)
+            outputs.append(output)
             answer = self.model.answer_extractor(output, self.dataset_key)
             label=self.sentences['label']
             if label.lower() == 'true':
@@ -74,4 +76,4 @@ class NLVRDatasetEvaluator(HEMMDatasetEvaluator):
                   predictions.append(0)
 
         results = self.metric.compute(ground_truth, predictions)
-        return results
+        return outputs, results

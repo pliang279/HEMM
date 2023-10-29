@@ -59,7 +59,7 @@ class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
         results = {}
         for metric in self.metrics:
             results[metric.name] = metric.compute(ground_truth, predictions)
-        return results
+        return predictions, results
     
     def evaluate_dataset_batched(self):
         pass

@@ -60,7 +60,8 @@ class cocoqaEvaluator(HEMMDatasetEvaluator):
 		results = {}
 		for metric in self.metrics:
 			results[metric.name] = metric.compute(ground_truth, predictions)
-			return results
+		
+		return predictions, results
 	
 	def load(self):
 		pass

@@ -61,7 +61,7 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
             metric_val = metric.compute(ground_truth, predictions)
             results[metric.name] = metric_val
         
-        return results
+        return predictions, results
      
     def evaluate_dataset_batched(self,
                          model,
@@ -90,21 +90,12 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
             gt_name = " ".join(all_images[idx].split("/")[-2].split("_")[-2:])
             ground_truth.append(gt_name)
 
-        images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.device)
+        predictions = self.predict_batched(images, texts, batch_size)
 
-        predictions = self.model.generate_batch(images_tensor, texts, batch_size)
-        # for output in outputs:
-        #     answer = self.model.answer_extractor(output, self.dataset_key)
-        #     if answer == 'yes':
-        #         predictions.append(1)
-        #     else:
-        #         predictions.append(0)
-        
         results = {}
         for metric in self.metrics:
             metric_val = metric.compute(ground_truth, predictions)
             results[metric.name] = metric_val
 
-        return results
+        return predictions, results
     

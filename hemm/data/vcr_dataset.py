@@ -88,6 +88,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 
 		predictions = []
 		ground_truth = []
+		outputs = []
 		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
 			print(i)
 			if i == 100:
@@ -119,6 +120,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			img = Image.fromarray(img)
 			img = img.save(image_path)
 			output = self.model.generate(prompt, image_path)
+			outputs.append(output)
 			answer = self.model.answer_extractor(output, self.dataset_key)
 			ground_truth.append(ann["answer_label"])
 			predictions.append(answer)
@@ -127,7 +129,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		for metric in self.metrics:
 			results[metric.name] = metric.compute(ground_truth, predictions)
 			
-		return results
+		return outputs, results
 
 	def evaluate_dataset_batched(self,
 						 model,
@@ -180,12 +182,14 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			
 			ground_truth.append(ann["answer_label"])
 			
-		images_tensor = torch.cat(images, dim=0)
-		images_tensor = images_tensor.to(self.model.device)
-		predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+		# images_tensor = torch.cat(images, dim=0)
+		# images_tensor = images_tensor.to(self.model.device)
+		# predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+
+		predictions = self.predict_batched(images, texts, batch_size)
 
 		results = {}
 		for metric in self.metrics:
 			results[metric.name] = metric.compute(ground_truth, predictions)
-		return results
+		return predictions, results
 	

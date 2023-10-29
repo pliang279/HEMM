@@ -52,10 +52,12 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
 
         ground_truth = []
         predictions = []
+        outputs = []
         for index in tqdm(range(len(json_list)), total=len(json_list)):
             json_obj = json.loads(json_list[index])
             text = self.get_prompt(json_obj['text'])
             output = self.model.generate(text, os.path.join(image_dir, json_obj['img']))
+            outputs.append(output)
             answer = self.model.answer_extractor(output, self.dataset_key)
             if answer == 'yes':
                 predictions.append(1)
@@ -67,8 +69,7 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
         for metric in self.metrics:
             metric_val = metric.compute(ground_truth, predictions)
             results[metric.name] = metric_val
-        # results = self.metric.compute(ground_truth, predictions)
-        return results
+        return outputs, results
      
     def evaluate_dataset_batched(self,
                          model,
@@ -96,10 +97,8 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(json_obj['label'])
 
-        images_tensor = torch.cat(images, dim=0)
-        images_tensor = images_tensor.to(self.model.device)
+        outputs = self.predict_batched(images, texts, batch_size)
 
-        outputs = self.model.generate_batch(images_tensor, texts, batch_size)
         for output in outputs:
             answer = self.model.answer_extractor(output, self.dataset_key)
             if answer == 'yes':
@@ -112,5 +111,5 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
             metric_val = metric.compute(ground_truth, predictions)
             results[metric.name] = metric_val
         # results = self.metric.compute(ground_truth, predictions)
-        return results
+        return outputs, results
     

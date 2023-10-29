@@ -39,6 +39,7 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
         self.model = model
         df = pd.read_csv(self.csv_path)
         predictions = []
+        outputs = []
         for index, row in tqdm(df.iterrows(), total=len(df)):
             try:
                 phrase = row['phrase']
@@ -54,6 +55,7 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
                             f.write(response.content)
                     image_path = "current_image.jpg"
                     answer = self.model.generate(question, image_path)
+                    outputs.append(answer)
                     answer = self.model.answer_extractor(answer, self.dataset_key)
                     generated_answers.append(answer)
 
@@ -70,12 +72,8 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
         results = {}
         for metric in self.metrics:
             results[metric.name] = metric.compute(ground_truth, predictions)
-        return results
+        return outputs, results
         
-        return sum(predictions) / len(predictions)
-    
-
-    
     def evaluate_dataset_batched(self,
                          metric,
                          model,
