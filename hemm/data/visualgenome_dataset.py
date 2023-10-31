@@ -35,6 +35,11 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 	def get_prompt(self, text):
 		prompt_text = self.prompt.format_prompt(text)
 		return prompt_text
+	
+	def __len__(self):
+		f = open(self.questions_json_path)
+		data_vqa = json.load(f)
+		return len(data_vqa)
 
 	def evaluate_dataset(self,
 						model,
@@ -42,6 +47,50 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 		self.load()
 		self.model = model
 
+		predictions = []
+		ground_truth = []
+
+		f = open(self.questions_json_path)
+		data_vqa = json.load(f)
+		for i in range(len(data_vqa)):
+			if i == 10:
+				break
+			temp_dict=data_vqa[i]
+			img_id=temp_dict['id']
+			qas=temp_dict['qas']
+			try:
+				if i==1:
+					url=f"https://cs.stanford.edu/people/rak248/VG_100K_2/{img_id}.jpg"
+					image=Image.open(requests.get(url, stream=True).raw)
+					image_b = image.resize((640,480))
+				else:
+					url=f"https://cs.stanford.edu/people/rak248/VG_100K/{img_id}.jpg"
+					image=Image.open(requests.get(url, stream=True).raw)
+					image_b = image.resize((640,480))
+			except:
+				continue
+
+			for j in range(len(qas)):
+				question=qas[j]['question']
+				question_pmt=self.get_prompt(question)
+				output = self.model.generate(question_pmt, image_b)
+				predictions.append(output)
+				ground_truth.append(qas[j]['answer'])
+
+		results = {}
+		for metric in self.metrics:
+			results[metric.name] = metric.compute(ground_truth, predictions)
+		return predictions, results
+
+	def load(self):
+		pass
+
+	def evaluate_dataset_batched(self, model, batch_size=32):
+		self.load()
+		self.model = model
+
+		images = []
+		texts = []
 		predictions = []
 		ground_truth = []
 
@@ -65,26 +114,18 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 					image_b = image.resize((640,480))
 			except:
 				continue
-			print(i, len(qas))
+			
 			for j in range(len(qas)):
 				question=qas[j]['question']
 				question_pmt=self.get_prompt(question)
-				output = self.model.generate(question_pmt, image_b)
-				predictions.append(output)
+				texts.append(question_pmt)
+				images.append(self.model.get_image_tensor(image_b))
 				ground_truth.append(qas[j]['answer'])
-		
-		print(len(ground_truth))
-		print(len(predictions))
-		print(ground_truth[0])
-		print(predictions[0])
 
+		predictions = self.predict_batched(images, texts, batch_size)
+	
 		results = {}
 		for metric in self.metrics:
 			results[metric.name] = metric.compute(ground_truth, predictions)
 		return predictions, results
-
-	def load(self):
-		pass
-
-	def evaluate_dataset_batched(self):
-		pass	
+	
