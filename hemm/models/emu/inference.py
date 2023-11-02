@@ -79,7 +79,7 @@ def Emu_inference(image_list, text_sequence, system='', instruct=True, max_new_t
         repetition_penalty=1.0,
     )[0].strip()
 
-    print(f"===> output: {output_text}\n")
+    return output_text
 
 
 def Emu_instruct_caption(img):
