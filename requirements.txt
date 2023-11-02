@@ -61,3 +61,7 @@ einops-exts
 open_clip_torch>=2.16.0 
 bert_score
 evaluate
+timm
+xformers
+diffusers==0.15.1
+huggingface_hub
