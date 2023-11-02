@@ -20,7 +20,7 @@ class Emu(HEMMModel):
         self.image_placeholder = "[IMG]" + "<image>" * 32 + "[/IMG]"
         self.image_system_msg = "You will be presented with an image: [IMG]ImageContent[/IMG]. You will be able to see the image after I provide it to you. Please answer my questions based on the given image."
 
-    def load_weights(self, model_loader_class, processor_class):
+    def load_weights(self, model_loader_class=None, processor_class=None):
         url = snapshot_download(repo_id="BAAI/Emu", local_dir='./')
         parser = argparse.ArgumentParser()
         parser.add_argument(
@@ -32,7 +32,7 @@ class Emu(HEMMModel):
         parser.add_argument(
             "--ckpt-path",
             type=str,
-            default='Emu/Emu-instruct.pt',
+            default='Emu-instruct.pt',
             help="Emu ckpt path",
         )
         args = parser.parse_args()
@@ -49,7 +49,7 @@ class Emu(HEMMModel):
         parser2.add_argument(
             "--ckpt-path",
             type=str,
-            default='Emu/pretrain',
+            default='pretrain',
             help="Emu Decoder ckpt path",
         )
         self.image_generation_args = parser2.parse_args()
