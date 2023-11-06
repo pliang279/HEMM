@@ -25,6 +25,14 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
         self.kaggle_api_path = kaggle_api_path
         self.prompt = Screen2WordsPrompt()
         self.metrics = [BertScoreMetric(), BleuMetric()]
+        self.images_dir = 'screen2wordsimages/unique_uis/combined'
+        self.csv_path = 'screen2words/screen_summaries.csv'
+        self.test_file = 'screen2words/split/test_screens.txt'
+        self.load()
+
+    def __len__(self):
+        data_file = open(self.test_file, 'r')
+        return len(data_file)        
 
     def load(self):
         os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
@@ -46,15 +54,11 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load()
+        # self.load()
         self.model = model
 
         predictions = []
         ground_truth = []
-        
-        self.images_dir = 'screen2wordsimages/unique_uis/combined'
-        self.csv_path = 'screen2words/screen_summaries.csv'
-        self.test_file = 'screen2words/split/test_screens.txt'
 
         self.dataset = pd.read_csv(self.csv_path)
 
@@ -78,10 +82,9 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset_batched(self,
                          model,
-                         metric,
                          batch_size=32
                          ):
-        self.load()
+        # self.load()
         self.model = model
         self.metric = metric
         
@@ -111,10 +114,11 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
             images.append(image)
             ground_truth.append(ground_truth_answer)
         
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
         
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
             
-        return predictions, results
+        return predictions, results, ground_truth[:samples]

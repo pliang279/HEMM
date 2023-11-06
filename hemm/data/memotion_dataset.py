@@ -31,6 +31,10 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
         self.choices = ['funny', 'very_funny', 'not_funny', 'hilarious']
         self.metrics = [BertScoreMetric(), BleuMetric()]
 
+    def __len__(self):
+        df = pd.read_excel(self.data_path)
+        return len(df)
+
     def get_prompt(self, caption) -> str:
         prompt_text = self.prompt.format_prompt(caption)
         return prompt_text
@@ -87,10 +91,11 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             text = self.get_prompt(caption)
             texts.append(text)
 
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
         
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+        return predictions, results, ground_truth[:samples]
     

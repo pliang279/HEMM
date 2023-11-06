@@ -20,6 +20,10 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
         self.prompt = GQAPrompt()
         self.metrics = [BertScoreMetric(), BleuMetric()]
 
+    def __len__(self):       
+       question_file = json.load(open(os.path.join('gqa_questions', 'val_all_questions.json'), 'r'))
+       return len(question_file)
+
     def load(self):
       if not os.path.exists('sceneGraphs.zip'):
         shell_command('wget https://downloads.cs.stanford.edu/nlp/data/gqa/sceneGraphs.zip')
@@ -96,11 +100,12 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(ground_truth_answer)
         
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
         results = {}
         for metric in self.metrics:
-           results[metric.name] = metric.compute(ground_truth, predictions)
+           results[metric.name] = metric.compute(ground_truth[:samples], predictions)
            
-        return results
+        return predictions, results, ground_truth[:samples]
     

@@ -13,7 +13,7 @@ class Kosmos2(HEMMModel):
 		self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 	def load_weights(self):
-		self.model = AutoModelForVision2Seq.from_pretrained("ydshieh/kosmos-2-patch14-224", trust_remote_code=True)
+		self.model = AutoModelForVision2Seq.from_pretrained("ydshieh/kosmos-2-patch14-224", trust_remote_code=True).to(self.device)
 		self.processor = AutoProcessor.from_pretrained("ydshieh/kosmos-2-patch14-224", trust_remote_code=True)
 
 	def generate(self,
@@ -25,7 +25,7 @@ class Kosmos2(HEMMModel):
 		else:
 			raw_image = image
 		
-		inputs = self.processor(text=text, images=raw_image, return_tensors="pt")
+		inputs = self.processor(text=text, images=raw_image, return_tensors="pt").to(self.device)
 		generated_ids = self.model.generate(
 						pixel_values=inputs["pixel_values"],
 						input_ids=inputs["input_ids"][:, :-1],
@@ -57,8 +57,7 @@ class Kosmos2(HEMMModel):
 		for i in tqdm(range(0, len(texts), batch_size)):
 			img_batch = images[i : i + batch_size]
 			text_batch = texts[i : i + batch_size]
-
-			inputs = self.processor(text=text_batch, images=img_batch, return_tensors="pt")
+			inputs = self.processor(text=text_batch, images=img_batch, return_tensors="pt", padding=True, truncation=True).to(self.device)
 			generated_ids = self.model.generate(
 							pixel_values=inputs["pixel_values"],
 							input_ids=inputs["input_ids"][:, :-1],

@@ -32,6 +32,9 @@ class Flickr30kDatasetEvaluator(HEMMDatasetEvaluator):
 	def get_prompt(self) -> str:
 		prompt_text = self.prompt.format_prompt()
 		return prompt_text
+	
+	def __len__(self,):
+		return len(self.annotation)
 
 	def load(self):
 		os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
@@ -49,8 +52,6 @@ class Flickr30kDatasetEvaluator(HEMMDatasetEvaluator):
 		ground_truth = []
 
 		for i, ann in tqdm(enumerate(self.annotation), total=len(self.annotation)):
-			if i == 8:
-				break
 			image_path = f"{self.image_dir}/{ann['image'].split('/')[-1]}"
 			ground_truth.append(ann["caption"][0])
 			text = self.get_prompt()
@@ -84,11 +85,12 @@ class Flickr30kDatasetEvaluator(HEMMDatasetEvaluator):
 			text = self.get_prompt()
 			texts.append(text)
 
-		predictions = self.predict_batched(images, texts, batch_size)
+		samples = len(images) // 10
+		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
 		results = {}
 		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth, predictions)
+			results[metric.name] = metric.compute(ground_truth[:samples], predictions)
 
-		return predictions, results
+		return predictions, results, ground_truth[:samples]
 	

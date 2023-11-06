@@ -35,6 +35,9 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)
         return prompt_text
+    
+    def __len__(self):
+        return len(os.listdir(self.image_dir))
 
     def evaluate_dataset(self,
                          model,
@@ -126,7 +129,8 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         # images_tensor = torch.cat(images, dim=0)
         # images_tensor = images_tensor.to(self.model.device)
         # outputs = self.model.generate_batch(images_tensor, texts, batch_size)
-        outputs = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        outputs = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
         for answer in outputs:
             if answer == 'yes':
@@ -136,6 +140,6 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
 
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth_list, predictions)
+            results[metric.name] = metric.compute(ground_truth_list[:samples], predictions)
         
-        return outputs, results    
+        return outputs, results, ground_truth_list[:samples]    

@@ -31,6 +31,9 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
     def load(self):
         pass
 
+    def __len__(self):
+        return len(self.annotation)
+
     def get_prompt(self, text):
         prompt_text = self.prompt.format_prompt(text)
         return prompt_text
@@ -83,10 +86,11 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(label)
         
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
 
-        return predictions, results
+        return predictions, results, ground_truth[:samples]

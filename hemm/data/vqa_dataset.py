@@ -21,6 +21,10 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
         self.prompt = VQAPrompt()
         self.metrics = [BertScoreMetric(), BleuMetric()]
 
+    def __len__(self):
+      question_file = json.load(open(os.path.join('vqa_questions', 'OpenEnded_abstract_v002_val2015_questions.json'), 'r'))
+      return len(question_file["questions"])
+    
     def load(self):
       if not os.path.exists('Annotations_Val_abstract_v002.zip'):
         shell_command('wget https://s3.amazonaws.com/cvmlp/vqa/abstract_v002/vqa/Annotations_Val_abstract_v002.zip')
@@ -96,10 +100,10 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
           text = self.get_prompt(question)
           texts.append(text)
           ground_truth.append(ground_truth_answer)
-
-      predictions = self.predict_batched(images, texts, batch_size)
+      samples = len(images) // 10
+      predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
       results = {}
       for metric in self.metrics:
-        results[metric.name] = metric.compute(ground_truth, predictions)
+        results[metric.name] = metric.compute(ground_truth[:samples], predictions)
       
-      return predictions, results
+      return predictions, results, ground_truth[:samples]

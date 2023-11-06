@@ -31,6 +31,10 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
         self.dataset = load_dataset("derek-thomas/ScienceQA")
         self.dataset = self.dataset['test']
 
+    def __len__(self):
+        self.load()
+        return len(self.dataset)
+
     def evaluate_dataset(self,
                          model,
                          ) -> None:
@@ -47,7 +51,7 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             lecture = item['lecture']
             image_url = item['image']
             context = item['hint']
-            ground_truth.append(['answer'])
+            ground_truth.append(choices[item['answer']])
             question = self.get_prompt(question_s,
                                        choices,
                                        lecture,
@@ -89,7 +93,7 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             lecture = item['lecture']
             image_url = item['image']
             context = item['hint']
-            ground_truth.append(['answer'])
+            ground_truth.append(choices[item['answer']])
             question = self.get_prompt(question_s,
                                        choices,
                                        lecture,
@@ -109,10 +113,11 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
 
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
         
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+        return predictions, results, ground_truth[:samples]
     

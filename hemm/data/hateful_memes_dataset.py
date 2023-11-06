@@ -36,6 +36,11 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
           shell_command('kaggle datasets download -d parthplc/facebook-hateful-meme-dataset')
         if not os.path.exists('hateful_memes'):
           shell_command('unzip facebook-hateful-meme-dataset.zip -d hateful_memes/')
+    
+    def __len__(self):
+        label_path = os.path.join(self.dataset_dir, 'data', self.evaluate_path)
+        json_list = list(open(label_path, 'r'))
+        return len(json_list)
 
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)
@@ -97,7 +102,8 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(json_obj['label'])
 
-        outputs = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        outputs = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
         for output in outputs:
             answer = self.model.answer_extractor(output, self.dataset_key)
@@ -108,8 +114,8 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
         
         results = {}
         for metric in self.metrics:
-            metric_val = metric.compute(ground_truth, predictions)
+            metric_val = metric.compute(ground_truth[:samples], predictions)
             results[metric.name] = metric_val
         # results = self.metric.compute(ground_truth, predictions)
-        return outputs, results
+        return outputs, results, ground_truth[:samples]
     

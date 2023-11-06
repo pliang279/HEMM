@@ -21,10 +21,14 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
         self.dataset_dir = dataset_dir
         self.prompt = VQARADPrompt()
         self.metrics = [BertScoreMetric(), BleuMetric()]
+        self.load()
 
     def load(self):
         self.dataset = load_dataset("flaviagiammarino/vqa-rad")
         self.dataset = self.dataset['test']
+
+    def __len__(self):
+        return len(self.dataset)
 
     def get_prompt(self, text):
         prompt_text = self.prompt.format_prompt(text)
@@ -33,7 +37,6 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load()
         self.model = model
         
         predictions = []
@@ -83,11 +86,12 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(ground_truth_answer)
         
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
         
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
 
-        return predictions, results
+        return predictions, results, ground_truth[:samples]
         

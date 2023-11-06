@@ -32,6 +32,15 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
     def get_prompt(self) -> str:
         prompt_text = self.prompt.format_prompt()
         return prompt_text
+    
+    def __len__(self,):
+        data_dict = {}
+        for fol in os.listdir(self.data_path):
+            for img in os.listdir(os.path.join(self.data_path, fol)):
+                data_dict[img] = fol
+
+        return len(data_dict)
+        
 
     def load(self, kaggle_api_path):
         os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
@@ -101,11 +110,12 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
 
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
     
-        return predictions, results
+        return predictions, results, ground_truth[:samples]
     

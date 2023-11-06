@@ -23,6 +23,13 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		self.prompt = VCRPrompt()
 		self.dataset_key = 'vcr'
 		self.metrics = [BertScoreMetric(), BleuMetric()]
+		self.load()
+
+	def __len__(self):
+		with open(self.annotation_file) as f:
+			self.annotations = f.readlines()
+		
+		return len(self.annotations)
 
 	def load(self):
 		if not os.path.exists('vcr1images.zip'):
@@ -80,7 +87,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 	def evaluate_dataset(self,
 						 model,
 						 ) -> None:
-		self.load()
+		# self.load()
 		self.model = model
 
 		with open(self.annotation_file) as f:
@@ -90,9 +97,6 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		ground_truth = []
 		outputs = []
 		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
-			print(i)
-			if i == 100:
-				break
 			ann = literal_eval(self.annotations[i])
 			question = self.fix_tokenization(ann["question"], ann["objects"])
 			new_answer_choices = []
@@ -146,9 +150,6 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 
 		ground_truth = []
 		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
-			print(i)
-			if i == 100:
-				break
 			ann = literal_eval(self.annotations[i])
 			question = self.fix_tokenization(ann["question"], ann["objects"])
 			new_answer_choices = []
@@ -186,10 +187,11 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		# images_tensor = images_tensor.to(self.model.device)
 		# predictions = self.model.generate_batch(images_tensor, texts, batch_size)
 
-		predictions = self.predict_batched(images, texts, batch_size)
+		samples = len(images) // 10
+		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
 		results = {}
 		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth, predictions)
-		return predictions, results
+			results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+		return predictions, results, ground_truth[:samples]
 	

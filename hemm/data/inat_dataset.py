@@ -31,6 +31,10 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
     def load(self, kaggle_api_path):
         pass
 
+    def __len__(self):
+        all_images = glob(f"{self.image_dir}/*/*.jpg")
+        return len(all_images)
+
     def get_prompt(self) -> str:
         prompt_text = self.prompt.format_prompt()
         return prompt_text
@@ -46,8 +50,6 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
         predictions = []
 
         for idx in tqdm(range(len(all_images)), total=len(all_images)):
-            if idx == 100:
-                break
             image_path = all_images[idx]
             text = self.get_prompt()
             output = self.model.generate(text, image_path)
@@ -77,8 +79,6 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
         texts = []
 
         for idx in tqdm(range(len(all_images)), total=len(all_images)):
-            if idx == 100:
-                break
             image_path = all_images[idx]
             text = self.get_prompt()
 
@@ -90,12 +90,13 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
             gt_name = " ".join(all_images[idx].split("/")[-2].split("_")[-2:])
             ground_truth.append(gt_name)
 
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
         results = {}
         for metric in self.metrics:
-            metric_val = metric.compute(ground_truth, predictions)
+            metric_val = metric.compute(ground_truth[:samples], predictions)
             results[metric.name] = metric_val
 
-        return predictions, results
+        return predictions, results, ground_truth[:samples]
     

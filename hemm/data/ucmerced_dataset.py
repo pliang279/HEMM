@@ -35,6 +35,11 @@ class UCMercedDatasetEvaluator(HEMMDatasetEvaluator):
     def get_prompt(self):
         prompt_text = self.prompt.format_prompt()
         return prompt_text
+    
+    def __len__(self):
+        csv_path = 'ucmercedimages/validation.csv'
+        df = pd.read_csv(csv_path)
+        return len(df)
 
     def evaluate_dataset(self,
                          model,
@@ -89,9 +94,10 @@ class UCMercedDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(ground_truth_answer)
         
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+        return predictions, results, ground_truth[:samples]

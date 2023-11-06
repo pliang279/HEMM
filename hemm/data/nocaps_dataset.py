@@ -27,10 +27,14 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
     def get_prompt(self) -> str:
         prompt_text = self.prompt.format_prompt()
         return prompt_text
+    
+    def __len__(self):
+        json_file = json.load(open(self.dataset_dir, 'r'))
+        return len(json_file["images"])
 
     def load(self):
         shell_command('wget https://s3.amazonaws.com/nocaps/nocaps_val_4500_captions.json')
-
+    
     def evaluate_dataset(self,
                          model,
                          ) -> None:
@@ -51,7 +55,7 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(image_caption)
             output = self.model.generate(text, image_path)
             predictions.append(output)
-        
+
         results = {}
         for metric in self.metrics:
             results[metric.name] = metric.compute(ground_truth, predictions)
@@ -79,7 +83,8 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
                 with open("./current_image.jpg", 'wb') as f:
                     f.write(response.content)
             image_path = "./current_image.jpg"
-
+            # print(image_url)
+            # print(image_path)
             raw_image = Image.open(image_path).convert('RGB')
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
@@ -87,11 +92,12 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(image_caption)
         
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
         
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
         
-        return predictions, results
+        return predictions, results, ground_truth[:samples]
     

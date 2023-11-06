@@ -55,3 +55,4 @@ class RSICDDatasetEvaluator(HEMMDatasetEvaluator):
         
         results = self.metric.compute(ground_truth, predictions)
         return predictions, results
+    

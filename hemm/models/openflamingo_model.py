@@ -156,3 +156,4 @@ class OpenFlamingoModel(HEMMModel):
                 return first_number
             else:
                 return None
+            

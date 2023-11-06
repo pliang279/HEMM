@@ -22,6 +22,12 @@ class EnricoDatasetEvaluator(HEMMDatasetEvaluator):
         self.prompt = EnricoPrompt()
         self.annotation_file = annotation_file
         self.metrics = [BertScoreMetric(), BleuMetric()]
+    
+    def __len__(self,):
+        with open(self.annotation_file) as f:
+            annotations = f.readlines()
+        annotations = annotations[1:]
+        return len(annotations)
 
     def load(self):
         pass
@@ -84,10 +90,11 @@ class EnricoDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(label)
 
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
 
-        return predictions, results
+        return predictions, results, ground_truth[:samples]

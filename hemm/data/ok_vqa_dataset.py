@@ -22,6 +22,11 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 		self.prompt = OKVQAPrompt()
 		self.metrics = [BertScoreMetric(), BleuMetric()]
 
+	def __len__(self):
+		annotation_file = os.path.join(self.dataset_dir, 'mscoco_val2014_annotations.json')
+		annotations = json.load(open(annotation_file, "r"))
+		return len(annotations["annotations"])
+
 	def load(self):
 		if not os.path.exists('val2014.zip'):
 			shell_command('wget http://images.cocodataset.org/zips/val2014.zip')
@@ -127,11 +132,12 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth_answer = ground_truth[i]['answers'][0]['raw_answer']
 			ground_truth_list.append(ground_truth_answer)
 
-		predictions = self.predict_batched(images, texts, batch_size)
+		samples = len(images) // 10
+		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
 		results = {}
 		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth_list, predictions)
+			results[metric.name] = metric.compute(ground_truth_list[:samples], predictions)
 		
-		return predictions, results
+		return predictions, results, ground_truth_list[:samples]
 	

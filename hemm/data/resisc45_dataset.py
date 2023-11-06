@@ -90,7 +90,6 @@ class Resisc45DatasetEvaluator(HEMMDatasetEvaluator):
         texts = []
         images = []
         
-
         for data in tqdm(self.dataset, total=len(self.dataset)):
             image_path = os.path.join(self.images_dir, data[1], data[0])
             ground_truth_answer = data[1]
@@ -101,11 +100,12 @@ class Resisc45DatasetEvaluator(HEMMDatasetEvaluator):
             images.append(image)
             ground_truth.append(ground_truth_answer)
         
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
         
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
         
-        return predictions, results
+        return predictions, results, ground_truth[:samples]
     

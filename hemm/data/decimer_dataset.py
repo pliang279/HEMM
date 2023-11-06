@@ -3,7 +3,7 @@ from typing import Optional, Union, List
 from PIL import Image
 import torch
 from tqdm import tqdm
-
+import pickle
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.decimer_prompt import DecimerPrompt
@@ -22,6 +22,9 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
         self.prompt = DecimerPrompt()
         self.annotation_file = annotation_file
         self.metrics = [BertScoreMetric(), BleuMetric()]
+
+    def __len__(self,):
+        return len(self.annotation_file)
 
     # def load(self):
     #   os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
@@ -58,6 +61,8 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(label)
         
+        # pickle.dump(ground_truth, open("./gt_decimer.pkl", "wb"))
+        
         results = {}
         for metric in self.metrics:
             results[metric.name] = metric.compute(ground_truth, predictions)
@@ -90,10 +95,11 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(label)
 
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
         
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+        return predictions, results, ground_truth[:samples]
         

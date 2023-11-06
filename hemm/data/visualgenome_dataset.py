@@ -52,9 +52,7 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 
 		f = open(self.questions_json_path)
 		data_vqa = json.load(f)
-		for i in range(len(data_vqa)):
-			if i == 10:
-				break
+		for i in tqdm(range(len(data_vqa)), total=len(data_vqa)):
 			temp_dict=data_vqa[i]
 			img_id=temp_dict['id']
 			qas=temp_dict['qas']
@@ -98,8 +96,6 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 
 		data_vqa = json.load(f)
 		for i in range(len(data_vqa)):
-			if i == 10:
-				break
 			temp_dict=data_vqa[i]
 			img_id=temp_dict['id']
 			qas=temp_dict['qas']
@@ -122,10 +118,11 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 				images.append(self.model.get_image_tensor(image_b))
 				ground_truth.append(qas[j]['answer'])
 
-		predictions = self.predict_batched(images, texts, batch_size)
+		samples = len(images) // 10
+		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 	
 		results = {}
 		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth, predictions)
-		return predictions, results
+			results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+		return predictions, results, ground_truth[:samples]
 	

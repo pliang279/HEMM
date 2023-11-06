@@ -28,6 +28,10 @@ class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
     def load(self):
         pass
 
+    def __len__(self):
+        annotations = json.load(open(self.annotation_file))
+        return len(annotations)
+
     def get_prompt(self, text):
         prompt_text = self.prompt.format_prompt(text)
         return prompt_text
@@ -42,61 +46,24 @@ class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
         ground_truth = []
 
         annotations = json.load(open(self.annotation_file))
-        idx = 0
-        for img_id in annotations:
+        samples = len(annotations) // 10
+        annotations = annotations[:samples]
+
+        for img_id in tqdm(annotations, total=len(annotations)):
             ann = annotations[img_id]
             for sample in ann:
-                if idx == 10:
-                    break
                 input_img = f"{self.image_dir}/{img_id}/{sample['input']}"
                 text = self.get_prompt(sample['instruction'])
                 gt_img = f"{self.image_dir}/{img_id}/{sample['output']}"
                 pred_img = self.model.generate_image(text, input_img)
-                predictions.append(gt_img)
-                ground_truth.append(pred_img)
-                idx += 1
-        
+                predictions.append(pred_img)
+                ground_truth.append(gt_img)
+
         results = {}
         for metric in self.metrics:
             results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+        return predictions, results, ground_truth
     
     def evaluate_dataset_batched(self):
         pass
-    
-    # def evaluate_dataset_batched(self,
-    #                      model,
-    #                      metric,
-    #                      batch_size=32
-    #                      ) -> None:
-    #     self.load()
-    #     self.model = model
-    #     self.metric = metric
-        
-    #     predictions = []
-    #     ground_truth = []
-
-    #     texts = []
-    #     images = []
-
-    #     with open(self.annotation_file) as f:
-    #         annotations = f.readlines()
-    #     annotations = annotations[1:]
-
-    #     for row in tqdm(annotations, total=len(annotations)):
-    #         img_id, label = row.strip().split(",")
-    #         image_path = f"{self.image_dir}/{img_id}.jpg"
-    #         raw_image = Image.open(image_path).convert('RGB')
-    #         image = self.model.get_image_tensor(raw_image)
-    #         images.append(image)
-    #         text = self.get_prompt()
-    #         texts.append(text)
-    #         ground_truth.append(label)
-        
-    #     images_tensor = torch.cat(images, dim=0)
-    #     images_tensor = images_tensor.to(self.model.chat.device)
-    #     predictions = self.model.generate_batch(images_tensor, texts, batch_size)
-
-    #     results = self.metric.compute(ground_truth, predictions)
-    #     return results
         

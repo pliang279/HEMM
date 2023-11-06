@@ -31,6 +31,12 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
             shell_command('gdown --no-check-certificate --folder https://drive.google.com/drive/folders/1G2C2_FUCyYQKCkSeCRRiTTsLDvOAjFj5')
         if not os.path.exists('pathvqa_images'):
             shell_command('unzip Backup/pvqa.zip -d pathvqa_images/')
+    
+    def __len__(self):
+        annotation_path = os.path.join('pathvqa_images','pvqa','qas','test','test_qa.pkl')
+        annotation_file = pickle.load(open(annotation_path, 'rb'))
+
+        return len(annotation_file)
         
     def evaluate_dataset(self,
                          model,
@@ -86,10 +92,11 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
             
             ground_truth.append(ground_truth_answer)
         
-        predictions = self.predict_batched(images, texts, batch_size)
+        samples = len(images) // 10
+        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
         results = {}
         for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
         
-        return predictions, results
+        return predictions, results, ground_truth[:samples]

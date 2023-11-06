@@ -29,6 +29,10 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
 	def get_prompt(self, title, image_description) -> str:
 		prompt_text = self.prompt.format_prompt(title, image_description)
 		return prompt_text
+	
+	def __len__(self):
+		annotation_file = json.load(open(self.annotation_path))
+		return len(annotation_file)
 
 	def load(self):
 		if not os.path.exists('memes.zip'):
@@ -86,11 +90,12 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth.append(gt_caption)
 			texts.append(text)
 
-		predictions = self.predict_batched(images, texts, batch_size)
+		samples = len(images) // 10
+		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 		
 		results = {}
 		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth, predictions)
+			results[metric.name] = metric.compute(ground_truth[:samples], predictions)
 		
-		return predictions, results
+		return predictions, results, ground_truth[:samples]
 	
