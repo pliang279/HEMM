@@ -42,7 +42,7 @@ class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
         
         predictions = []
         ground_truth = []
-        for data in tqdm(self.dataset, total=len(self.dataset))
+        for data in tqdm(self.dataset, total=len(self.dataset)):
             for pair in ((0,0), (0,1), (1,0), (1,1)):
                 image = data['image_'+str(pair[0])]
                 query = data['caption_'+str(pair[1])]
