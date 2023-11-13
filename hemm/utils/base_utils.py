@@ -47,7 +47,7 @@ def load_dataset_evaluator(kaggle_api_path=None):
         # 'vcr': vcr_dataset.VCRDatasetEvaluator(),
         'okvqa': ok_vqa_dataset.OKVQADatasetEvaluator(dataset_dir='/work/agoindan/.cache/'),
         # 'gqa': gqa_dataset.GQADatasetEvaluator(),
-        # 'winogroundVQA': winogroundVQA_dataset.WinogroundVQAEvaluator(),
+        'winogroundVQA': winogroundVQA_dataset.WinogroundDatasetEvaluator(),
         # 'nlvr':nlvr_dataset.NLVRDatasetEvaluator(),
         # 'nlvr2':nlvr2.NLVR2evaluator(),
         #'cocoqa':cocoqa_dataset.cocoqaEvaluator(),
