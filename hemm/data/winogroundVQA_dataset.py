@@ -13,7 +13,7 @@ from hemm.metrics.metric import HEMMMetric
 from hemm.metrics.bertscore_metric import BertScoreMetric
 
 
-class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
+class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
                  dataset_dir='./',
                  hf_auth_token="",
