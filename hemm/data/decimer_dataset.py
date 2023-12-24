@@ -4,6 +4,7 @@ from PIL import Image
 import torch
 from tqdm import tqdm
 import pickle
+import random
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.decimer_prompt import DecimerPrompt
@@ -20,11 +21,17 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
         self.image_dir = image_dir
         self.device = device
         self.prompt = DecimerPrompt()
-        self.annotation_file = annotation_file
         self.metrics = [BertScoreMetric(), BleuMetric()]
+        random.seed(0)
+        with open(annotation_file) as f:
+            self.annotations = f.readlines()
+            
+        self.annotations = self.annotations[1:]
+        random.shuffle(self.annotations)
+        self.annotations = self.annotations[-len(self.annotations) // 10:]
 
     def __len__(self,):
-        return len(self.annotation_file)
+        return len(self.annotations)
 
     # def load(self):
     #   os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
@@ -49,11 +56,7 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
         predictions = []
         ground_truth = []
 
-        with open(self.annotation_file) as f:
-            annotations = f.readlines()
-        annotations = annotations[1:]
-
-        for row in tqdm(annotations, total=len(annotations)):
+        for row in tqdm(self.annotations, total=len(self.annotations)):
             img_id, label = row.strip().split("\t")
             image_path = f"{self.image_dir}/{img_id}.png"
             text = self.get_prompt()
@@ -61,12 +64,7 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(label)
         
-        # pickle.dump(ground_truth, open("./gt_decimer.pkl", "wb"))
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+        return predictions, ground_truth 
     
     def evaluate_dataset_batched(self,
                          model,
@@ -81,25 +79,23 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
         texts = []
         images = []
 
-        with open(self.annotation_file) as f:
-            annotations = f.readlines()
-        annotations = annotations[1:]
-
-        for row in tqdm(annotations, total=len(annotations)):
+        for row in tqdm(self.annotations, total=len(self.annotations)):
             img_id, label = row.strip().split("\t")
             image_path = f"{self.image_dir}/{img_id}.png"
             raw_image = Image.open(image_path).convert('RGB')
+            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
             text = self.get_prompt()
             texts.append(text)
             ground_truth.append(label)
 
-        samples = len(images) // 10
+        # samples = len(raw_images)
+        # print(len(raw_images))
+        samples = len(images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "decimer.pkl")
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-        return predictions, results, ground_truth[:samples]
+            
+        # results = self.run_metrics(ground_truth, predictions)
+        return predictions, ground_truth[:samples]
         

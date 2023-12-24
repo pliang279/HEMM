@@ -56,10 +56,7 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
 
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+        return predictions, ground_truth
  
     def evaluate_dataset_batched(self,
                          model,
@@ -92,12 +89,11 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(image_caption)
         
-        samples = len(images) // 10
+        samples = len(images)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-        
-        return predictions, results, ground_truth[:samples]
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "nocaps.pkl")
+
+        return predictions, ground_truth[:samples]
     

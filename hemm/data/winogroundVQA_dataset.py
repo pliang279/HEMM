@@ -3,79 +3,70 @@ import json
 from typing import Optional, Union, List
 from PIL import Image
 import torch
-from datasets import load_dataset, concatenate_datasets
+from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
-from hemm.prompts.winogroundvqa_prompt import WinogroundVQAprompt
-from hemm.data.dataset import HEMMDatasetEvaluator
-from hemm.metrics.metric import HEMMMetric
+from datasets import load_dataset
 
-class WinogroundVQA(Dataset):
+from hemm.prompts.winoground_prompt import WinogroundPrompt
+from hemm.data.dataset import HEMMDatasetEvaluator
+from hemm.metrics.bertscore_metric import BertScoreMetric
+
+class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 questions_file,
+                 dataset_dir='./',
                  hf_auth_token="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",
-                 device="cuda",
                  ):
-        self.image_dir = load_dataset("facebook/winoground", use_auth_token=hf_auth_token)['test']
-        self.questions = load_dataset("csv", data_files="/content/drive/MyDrive/holistic_eval_winoground/winoground_vqa.csv")['train']
-        self.device = device
-        self.prompt = WinogroundVQAprompt()
-                     
+        super().__init__()
+        self.dataset_dir = dataset_dir
+        self.prompt = WinogroundPrompt()
+        self.metrics = [BertScoreMetric()]
+        self.hf_auth_token = hf_auth_token
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.load()
+    
+    def load(self):
+        self.dataset = load_dataset("facebook/winoground", use_auth_token=self.hf_auth_token)['test']
+
+    def __len__(self):
+        return len(self.dataset)
+
     def get_prompt(self, text):
         prompt_text = self.prompt.format_prompt(text)
         return prompt_text
-        
-    def __getitem__(self, index):
-        res = []
-        for pair in ((0,0), (0,1), (1,0), (1,1)):
-            im_k = pair[0]
-            qu_k = pair[1]
-            img = self.image_dir[index][f'image_{im_k}']
-            temporary = self.questions[index][f'query_{qu_k}']
-            question=self.get_prompt(temporary)
-            gt = 'yes' if pair[0] == pair[1] else 'no'
-            res.append({
-                'image': img,
-                'question': question,
-                'gt': gt
-            })
-        return res
 
-    def __len__(self):
-        return len(self.images)
-
-class WinogroundVQAEvaluator(HEMMDatasetEvaluator):
-    def __init__(self,
-                 dataset_dir,
-                 model,
-                 evaluate_path,
-                 device,
-                 batch_size,
-                 shuffle_dataset,
-                 output_file_path
-                 ):
-        super().__init__(dataset_dir)
-        self.dataset_dir = dataset_dir
-        self.model = model
-        self.evaluate_path = evaluate_path
-        self.device = device
-        self.batch_size = batch_size
-        self.shuffle_dataset = shuffle_dataset
-        self.output_file_path = output_file_path
-
-    def evaluate(self,
-                         metrics: List[HEMMMetric],
-                         ) -> None:
-        questions_file = os.path.join(self.dataset_dir, 'winoground_vqa.csv')
-
-        pt_dataset = WinogroundVQA(questions_file, self.device)
-        loader = DataLoader(pt_dataset, batch_size=self.batch_size, shuffle=self.shuffle_dataset)
-
-        # This is the concrete implementation of the `evaluate` function.
-        self._evaluate(self.model, loader, self.output_file_path, modalities=['img','text'])
-
-    def _evaluate(self,
+    def evaluate_dataset(self,
                          model,
-                         loader,
-                         output_file_path,
-                         modalities=['img','text']) -> None:
+                         ) -> None:
+        self.model = model
+        
+        predictions = []
+        ground_truth = []
+        # raw_images = []
+        texts = []
+        total_samples = 4 * len(self.dataset)
+        for data in tqdm(self.dataset, total=len(self.dataset)):
+            for pair in ((0,0), (0,1), (1,0), (1,1)):
+                image = data['image_'+str(pair[0])]
+                query = data['caption_'+str(pair[1])]
+                question=self.get_prompt(query)
+                gt = 'yes' if pair[0] == pair[1] else 'no'
+                ground_truth.append(gt)
+                with open("current_image.jpg", 'wb') as f:
+                    image = image.convert('RGB')
+                    image.save(f)
+                    image_path = "current_image.jpg"
+                texts.append(question)
+                # raw_images.append(Image.open(image_path))
+                output = self.model.generate(question, image_path)
+                predictions.append(output) 
+        
+        # print(len(raw_images))
+        # self.save_details(raw_images, texts, ground_truth, "winoground.pkl")
+
+        return predictions, ground_truth
+
+    def evaluate_dataset_batched(self,
+                         model,
+                         batch_size=32
+                         ):
         pass

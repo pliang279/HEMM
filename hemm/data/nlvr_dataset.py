@@ -23,21 +23,24 @@ import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
+from hemm.utils.common_utils import shell_command
 
 class NLVRDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset_dir = './train',
+                 dataset_dir = './nlvr/nlvr/dev/',
                  ):
         super().__init__()
-        #self.dataset_key = 'newyorkercartoon'
         self.dataset_dir = dataset_dir
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.prompt = nlvrprompt()
 
-        self.image_dir = os.path.join(self.dataset_dir, 'nlvr/images/0')
-        self.sentences = os.path.join(self.dataset_dir, 'train.json')
-        #self.csv_path_suffix_1 = 'LilUCB'
-        #self.csv_path_suffix_2 = 'lil-KLUCB'
+        self.image_dir = os.path.join(self.dataset_dir, 'images/')
+        with open(os.path.join(self.dataset_dir, 'dev.json'), "r") as f:
+            self.sentences = f.readlines()
+
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def load(self):
         shell_command('git clone https://github.com/lil-lab/nlvr.git')
@@ -48,32 +51,43 @@ class NLVRDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         metric,
                          ) -> None:
         self.load()
-        self.metric = metric
         self.model = model
         predictions = []
         ground_truth = []
-        outputs = []
-        for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
-            img_id = img.split('.png')
-            img_path = os.path.join(self.image_dir, img)
-            sentence=self.sentences['sentence']
+        outputs = []        
+        cnt = 0
+        raw_images = []
+        texts = []
+
+        for line in tqdm(self.sentences, total=len(self.sentences)):
+            ann = json.loads(line)
+            img_path = os.path.join(self.image_dir, f'{ann["directory"]}/dev-{ann["identifier"]}-0.png')
+            raw_images.append(Image.open(img_path))
+            sentence = ann['sentence']
             text = self.get_prompt(sentence)
+            texts.append(text)
             output = self.model.generate(text, img_path)
             outputs.append(output)
-            answer = self.model.answer_extractor(output, self.dataset_key)
-            label=self.sentences['label']
-            if label.lower() == 'true':
-                  ground_truth.append(1)
-            else:
-                  ground_truth.append(0)
+            # answer = self.model.answer_extractor(output, self.dataset_key)
+            label = ann['label']
+            ground_truth.append(label.lower())
+            # predictions.append(output)
+            # if label.lower() == 'true':
+            #       ground_truth.append(1)
+            # else:
+            #       ground_truth.append(0)
 
-            if answer.lower() == 'true':
-                  predictions.append(1)
-            else:
-                  predictions.append(0)
+            # if answer.lower() == 'true':
+            #       predictions.append(1)
+            # else:
+            #       predictions.append(0)
+            
+            # cnt += 1
 
-        results = self.metric.compute(ground_truth, predictions)
-        return outputs, results
+        # self.save_details(raw_images, texts, ground_truth, "nlvr.pkl")
+        return outputs, ground_truth
+    
+    def evaluate_dataset_batched(self):
+        pass

@@ -22,6 +22,7 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
         self.prompt = ScienceQAPrompt()
         self.metrics = [BertScoreMetric(), BleuMetric()]
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.load()
  
     def get_prompt(self, question_s, choices, lecture, context) -> str:
         prompt_text = self.prompt.format_prompt(question_s, choices, lecture, context)
@@ -32,14 +33,12 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
         self.dataset = self.dataset['test']
 
     def __len__(self):
-        self.load()
         return len(self.dataset)
 
     def evaluate_dataset(self,
                          model,
                          ) -> None:
         
-        self.load()
         self.model = model
         predictions = []
         ground_truth = []
@@ -52,27 +51,23 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             image_url = item['image']
             context = item['hint']
             ground_truth.append(choices[item['answer']])
-            question = self.get_prompt(question_s,
-                                       choices,
-                                       lecture,
-                                       context
+            question = self.get_prompt(lecture,
+                                       question_s,
+                                       context,
+                                       choices
                                        )
             for ind, choice in enumerate(choices):
                 curr_choice_str = str(ind+1) + ') ' + choice
                 question = question + curr_choice_str + '\n'
             question += '\n'
             with open("current_image.jpg", 'wb') as f:
-                # f.write(image_url)
                 image_url.save(f)
                 image_path = "current_image.jpg"
             
             ans = self.model.generate(question, image_path)
             predictions.append(ans)
         
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+        return predictions, ground_truth
     
     def evaluate_dataset_batched(self,
                          model,
@@ -85,6 +80,7 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
         ground_truth = []
         images = []
         texts = []
+    
         for item in tqdm(self.dataset, total=len(self.dataset)):
             if not item['image']:
                 continue
@@ -94,10 +90,10 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             image_url = item['image']
             context = item['hint']
             ground_truth.append(choices[item['answer']])
-            question = self.get_prompt(question_s,
-                                       choices,
-                                       lecture,
-                                       context
+            question = self.get_prompt(lecture,
+                                       question_s,
+                                       context,
+                                       choices
                                        )
             for ind, choice in enumerate(choices):
                 curr_choice_str = str(ind+1) + ') ' + choice
@@ -105,19 +101,20 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             question += '\n'
             texts.append(question)
             with open("current_image.jpg", 'wb') as f:
-                # f.write(image_url)
                 image_url.save(f)
                 image_path = "current_image.jpg"
             
             raw_image = Image.open(image_path).convert('RGB')
+
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
 
-        samples = len(images) // 10
+        samples = len(images)
+        # print(samples)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "scienceqa.pkl")
         
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-        return predictions, results, ground_truth[:samples]
+        return predictions, ground_truth[:samples]
     

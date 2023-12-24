@@ -19,7 +19,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 				):
 		super().__init__()
 		self.annotation_file = 'vcr_annotations/val.jsonl'
-		self.image_dir = 'vcr_images/vcr1images/'
+		self.image_dir = './vcr1images/'
 		self.prompt = VCRPrompt()
 		self.dataset_key = 'vcr'
 		self.metrics = [BertScoreMetric(), BleuMetric()]
@@ -38,8 +38,8 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			shell_command('wget https://s3.us-west-2.amazonaws.com/ai2-rowanz/vcr1annots.zip')
 		if not os.path.exists('vcr_annotations'):
 			shell_command('unzip vcr1annots.zip -d vcr_annotations')
-		if not os.path.exists('vcr_images'):
-			shell_command('unzip vcr1images.zip -d vcr_images')
+		if not os.path.exists('vcr1images'):
+			shell_command('unzip vcr1images.zip -d vcr1images')
 
 	def get_prompt(self, question, answer_choices, rationale_choices=None, answer_label=None):
 		prompt = self.prompt.format_prompt(question, answer_choices, rationale_choices, answer_label)
@@ -105,7 +105,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			new_rationale_choices = []
 			for ch in ann["rationale_choices"]:
 				new_rationale_choices.append(self.fix_tokenization(ch, ann["objects"]))
-			
+
 			prompt = self.get_prompt(question, new_answer_choices, new_rationale_choices, ann["answer_label"])
 			img = np.asarray(Image.open(os.path.join(self.image_dir, ann['img_fn'])).convert("RGB"))
 			metadata = json.load(open(os.path.join(self.image_dir, ann['metadata_fn'])))
@@ -125,15 +125,11 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			img = img.save(image_path)
 			output = self.model.generate(prompt, image_path)
 			outputs.append(output)
-			answer = self.model.answer_extractor(output, self.dataset_key)
-			ground_truth.append(ann["answer_label"])
-			predictions.append(answer)
+			# answer = self.model.answer_extractor(output, self.dataset_key)
+			ground_truth.append(new_answer_choices[ann["answer_label"]])
+			predictions.append(output)
 			
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth, predictions)
-			
-		return outputs, results
+		return outputs, ground_truth
 
 	def evaluate_dataset_batched(self,
 						 model,
@@ -144,6 +140,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 
 		texts = []
 		images = []
+		# raw_images = []
 
 		with open(self.annotation_file) as f:
 			self.annotations = f.readlines()
@@ -152,9 +149,11 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
 			ann = literal_eval(self.annotations[i])
 			question = self.fix_tokenization(ann["question"], ann["objects"])
+
 			new_answer_choices = []
 			for ch in ann["answer_choices"]:
 				new_answer_choices.append(self.fix_tokenization(ch, ann["objects"]))
+
 			new_rationale_choices = []
 			for ch in ann["rationale_choices"]:
 				new_rationale_choices.append(self.fix_tokenization(ch, ann["objects"]))
@@ -177,21 +176,22 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			img = Image.fromarray(img)
 			img = img.save(image_path)
 			raw_image = Image.open(image_path).convert('RGB')
+
 			image = self.model.get_image_tensor(raw_image)
 			images.append(image)
+			# print(prompt)
 			texts.append(prompt)
-			
-			ground_truth.append(ann["answer_label"])
+			ground_truth.append(new_answer_choices[ann["answer_label"]])
 			
 		# images_tensor = torch.cat(images, dim=0)
 		# images_tensor = images_tensor.to(self.model.device)
 		# predictions = self.model.generate_batch(images_tensor, texts, batch_size)
 
-		samples = len(images) // 10
+		samples = len(images)
 		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+		# print(len(raw_images))
+		# samples = len(raw_images)
+		# self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "vcr.pkl")
 
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-		return predictions, results, ground_truth[:samples]
+		return predictions, ground_truth[:samples]
 	

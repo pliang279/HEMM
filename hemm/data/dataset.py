@@ -5,6 +5,7 @@ from typing import Optional, Union, List
 from hemm.models.model import HEMMModel
 from hemm.metrics.metric import HEMMMetric
 from PIL import Image
+import pickle
 
 class HEMMDatasetEvaluator(abc.ABC):
 	"""
@@ -48,6 +49,24 @@ class HEMMDatasetEvaluator(abc.ABC):
 			predictions = self.model.generate_batch(images_tensor, texts, batch_size)
 
 		return predictions
+	
+	def save_details(self, images, texts, gts, name):
+		assert len(images) == len(texts) == len(gts)
+		details = {
+			"images":images,
+			"texts": texts,
+			"gts": gts
+		}
+		pickle.dump(details, open(name, "wb"))
+
+		return
+
+	def run_metrics(self, ground_truth, predictions):
+		results = {}
+		for metric in self.metrics:
+			results[metric.name] = metric.compute(ground_truth, predictions)
+			
+		return results
 
 	@abc.abstractmethod
 	def evaluate_dataset_batched(self):

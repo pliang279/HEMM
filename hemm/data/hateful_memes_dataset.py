@@ -70,11 +70,7 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
                 predictions.append(0)
             ground_truth.append(json_obj['label'])
 
-        results = {}
-        for metric in self.metrics:
-            metric_val = metric.compute(ground_truth, predictions)
-            results[metric.name] = metric_val
-        return outputs, results
+        return outputs, ground_truth
      
     def evaluate_dataset_batched(self,
                          model,
@@ -102,8 +98,11 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(json_obj['label'])
 
-        samples = len(images) // 10
+        samples = len(images)
         outputs = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "hateful_memes.pkl")
 
         for output in outputs:
             answer = self.model.answer_extractor(output, self.dataset_key)
@@ -112,10 +111,11 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
             else:
                 predictions.append(0)
         
-        results = {}
-        for metric in self.metrics:
-            metric_val = metric.compute(ground_truth[:samples], predictions)
-            results[metric.name] = metric_val
+        # results = {}
+        # for metric in self.metrics:
+        #     metric_val = metric.compute(ground_truth[:samples], predictions)
+        #     results[metric.name] = metric_val
         # results = self.metric.compute(ground_truth, predictions)
-        return outputs, results, ground_truth[:samples]
+
+        return outputs, ground_truth[:samples]
     

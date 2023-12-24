@@ -40,39 +40,48 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
         df = pd.read_csv(self.csv_path)
         predictions = []
         outputs = []
+        ground_truth = []
+        # raw_images = []
+        texts = []
         for index, row in tqdm(df.iterrows(), total=len(df)):
             try:
                 phrase = row['phrase']
                 distractors = ast.literal_eval(row['distractors'])
                 question = self.get_prompt(phrase)
                 answer_image = ast.literal_eval(row['answer'])[0]
-                generated_answers = []
                 distractors.append(answer_image)
+                
                 for distractor in distractors:
                     response = requests.get(distractor)
                     if response.status_code == 200:
                         with open("current_image.jpg", 'wb') as f:
                             f.write(response.content)
                     image_path = "current_image.jpg"
+                    # raw_images.append(Image.open(image_path).convert("RGB"))
+                    texts.append(question)
                     answer = self.model.generate(question, image_path)
                     outputs.append(answer)
-                    answer = self.model.answer_extractor(answer, self.dataset_key)
-                    generated_answers.append(answer)
+                    # answer = self.model.answer_extractor(answer, self.dataset_key)
+                    # generated_answers.append(answer)
 
-                if generated_answers[-1] == 'yes':
-                    if generated_answers[0] == 'no' and generated_answers[1] == 'no' and generated_answers[2] == 'no':
-                        predictions.append(1)
-                    else:
-                        predictions.append(0)
-                else:
-                    predictions.append(0)
+                ground_truth += [0, 0, 0, 1]
+                
+                # if generated_answers[-1] == 'yes':
+                #     if generated_answers[0] == 'no' and generated_answers[1] == 'no' and generated_answers[2] == 'no':
+                #         predictions.append(1)
+                #     else:
+                #         predictions.append(0)
+                # else:
+                #     predictions.append(0)
+                
+                # ground_truth.append(1)
+                
             except Exception as e:
-                continue
+                print("Not Working")
 
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return outputs, results
+        # self.save_details(raw_images, texts, ground_truth, "irfl.pkl")
+        
+        return outputs, ground_truth
         
     def evaluate_dataset_batched(self,
                          metric,

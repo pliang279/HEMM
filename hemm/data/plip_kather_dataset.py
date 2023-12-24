@@ -14,7 +14,7 @@ class PlipKatherDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
                  image_dir='/work/agoindan/CRC-VAL-HE-7K',
                  annotation_file="/work/agoindan/External_validation_data/Kather_test/Kather_test.csv",
-                 device="cpu",
+                 device="cuda",
                  ):
         super().__init__()
         self.image_dir = image_dir
@@ -43,7 +43,7 @@ class PlipKatherDatasetEvaluator(HEMMDatasetEvaluator):
         
         predictions = []
         ground_truth = []
-
+        cnt = 0
         for row in tqdm(self.annotation, total=len(self.annotation)):
             _, fn, lb, caption = row.strip().split(",")
             label = " ".join(caption.split()[5:])[:-1]
@@ -52,12 +52,9 @@ class PlipKatherDatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(label)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            cnt += 1
 
-        return predictions, results
+        return predictions, ground_truth
     
     def evaluate_dataset_batched(self,
                          model,
@@ -83,12 +80,10 @@ class PlipKatherDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(label)
         
-        samples = len(images) // 10
+        samples = len(images)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "plip_kather.pkl")
 
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-
-        return predictions, results, ground_truth[:samples]
+        return predictions, ground_truth[:samples]
 

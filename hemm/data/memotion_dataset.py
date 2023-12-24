@@ -1,6 +1,6 @@
 import os
 import json
-from PIL import Image
+from PIL import Image, ImageFile
 import requests
 import torch
 import subprocess
@@ -14,6 +14,8 @@ from hemm.prompts.memotion_prompt import MemotionPrompt
 from hemm.utils.common_utils import shell_command
 from hemm.metrics.bertscore_metric import BertScoreMetric
 from hemm.metrics.bleu_metric import BleuMetric
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
@@ -62,11 +64,8 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             text = self.get_prompt(caption)
             output = self.model.generate(text, image_path)
             predictions.append(output)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+
+        return predictions, ground_truth
 
     def evaluate_dataset_batched(self,
                          model,
@@ -78,6 +77,7 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
         ground_truth = []
         images = []
         texts = []
+
         for index, row in tqdm(df.iterrows(), total=len(df)):
             image_path = os.path.join(self.image_dir, row['image_name'])
             caption = row['text_corrected']
@@ -85,17 +85,17 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(gt_label)
 
             raw_image = Image.open(image_path).convert('RGB')
+
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
 
             text = self.get_prompt(caption)
             texts.append(text)
 
-        samples = len(images) // 10
+        samples = len(images)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-        return predictions, results, ground_truth[:samples]
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "memotion.pkl")
+        return predictions, ground_truth[:samples]
     

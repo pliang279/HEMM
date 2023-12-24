@@ -72,10 +72,7 @@ class Resisc45DatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
         
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+        return predictions, ground_truth
 
     def evaluate_dataset_batched(self,
                          model,
@@ -100,12 +97,11 @@ class Resisc45DatasetEvaluator(HEMMDatasetEvaluator):
             images.append(image)
             ground_truth.append(ground_truth_answer)
         
-        samples = len(images) // 10
+        samples = len(images)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "resisc45.pkl")
         
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-        
-        return predictions, results, ground_truth[:samples]
+        return predictions, ground_truth[:samples]
     

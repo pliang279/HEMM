@@ -55,6 +55,7 @@ class MMIMDBDatasetEvaluator(HEMMDatasetEvaluator):
         ground_truth = []
 
         ann_files = json.load(open(self.annotation_file))[self.split.strip()]
+    
         for row in tqdm(ann_files, total=len(ann_files)):
             ann_id = row.strip()
             image_path = f"{self.image_dir}/{ann_id}.jpeg"
@@ -65,11 +66,7 @@ class MMIMDBDatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(label)
         
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        
-        return predictions, results
+        return predictions, ground_truth
     
     def evaluate_dataset_batched(self,
                          model,
@@ -83,12 +80,14 @@ class MMIMDBDatasetEvaluator(HEMMDatasetEvaluator):
 
         texts = []
         images = []
+        # raw_images = []
 
         ann_files = json.load(open(self.annotation_file))[self.split.strip()]
         for row in tqdm(ann_files, total=len(ann_files)):
             ann_id = row.strip()
             image_path = f"{self.image_dir}/{ann_id}.jpeg"
             raw_image = Image.open(image_path).convert('RGB')
+            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
             data = json.load(open(f"{self.image_dir}/{ann_id}.json"))
@@ -97,11 +96,14 @@ class MMIMDBDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(label)
         
-        samples = len(images) // 10
+        samples = len(images)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "mmimdb.pkl")
 
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-        return predictions, results, ground_truth[:samples]
+        # results = {}
+        # for metric in self.metrics:
+        #     results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+        return predictions, ground_truth[:samples]
         

@@ -59,12 +59,8 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth.append(gt_caption)
 			output = self.model.generate(text, image_path)
 			predictions.append(output)
-		
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth, predictions)
 
-		return predictions, results
+		return predictions, ground_truth
 
 	def evaluate_dataset_batched(self,
 						 model,
@@ -77,9 +73,11 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
 		ground_truth = []
 		images = []
 		texts = []
+		raw_images = []
 		for index, data_dict in tqdm(enumerate(annotation_file), total=len(annotation_file)):
 			image_path = f"{self.images}/{data_dict['img_fname'].strip()}"
 			raw_image = Image.open(image_path).convert('RGB')
+			
 			image = self.model.get_image_tensor(raw_image)
 			images.append(image)
 			
@@ -90,12 +88,11 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth.append(gt_caption)
 			texts.append(text)
 
-		samples = len(images) // 10
+		samples = len(images)
 		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+		# print(len(raw_images))
+		# samples = len(raw_images)
+		# self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "memecaps.pkl")	
 		
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-		
-		return predictions, results, ground_truth[:samples]
+		return predictions, ground_truth[:samples]
 	

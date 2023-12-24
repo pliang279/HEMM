@@ -75,10 +75,7 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 				predictions.append(output)
 				ground_truth.append(qas[j]['answer'])
 
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth, predictions)
-		return predictions, results
+		return predictions, ground_truth
 
 	def load(self):
 		pass
@@ -95,7 +92,7 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 		f = open(self.questions_json_path)
 
 		data_vqa = json.load(f)
-		for i in range(len(data_vqa)):
+		for i in tqdm(range(len(data_vqa)), total = len(data_vqa)):
 			temp_dict=data_vqa[i]
 			img_id=temp_dict['id']
 			qas=temp_dict['qas']
@@ -116,13 +113,13 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 				question_pmt=self.get_prompt(question)
 				texts.append(question_pmt)
 				images.append(self.model.get_image_tensor(image_b))
+				# raw_images.append(image_b)
 				ground_truth.append(qas[j]['answer'])
 
-		samples = len(images) // 10
+		samples = len(images)
 		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+		# samples = len(raw_images)
+		# self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "visualgen.pkl")
 	
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-		return predictions, results, ground_truth[:samples]
+		return predictions, ground_truth[:samples]
 	

@@ -82,10 +82,7 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth_list.append(ground_truth_answer)
 			predictions.append(output)
 
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth_list, predictions)
-		return predictions, results
+		return predictions, ground_truth
 	
 	def evaluate_dataset_batched(self,
 								model,
@@ -118,11 +115,14 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 		ground_truth_list = []
 		texts = []
 		images = []
+		# raw_images = []
+
 		for i in tqdm(range(len(image_ids)), total=len(image_ids)):
 			image_path = os.path.join(image_dir, f"COCO_val2014_000000{image_ids[i]}.jpg")
 			if not os.path.exists(image_path):
 				continue
 			raw_image = Image.open(image_path).convert('RGB')
+			# raw_images.append(raw_image)
 			image = self.model.get_image_tensor(raw_image)
 			images.append(image)
 
@@ -132,12 +132,11 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth_answer = ground_truth[i]['answers'][0]['raw_answer']
 			ground_truth_list.append(ground_truth_answer)
 
-		samples = len(images) // 10
+		samples = len(images)
 		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+		# print(len(raw_images))
+		# samples = len(raw_images)
+		# self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "okvqa.pkl")
 
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth_list[:samples], predictions)
-		
-		return predictions, results, ground_truth_list[:samples]
+		return predictions, ground_truth_list[:samples]
 	

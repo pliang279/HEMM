@@ -45,24 +45,28 @@ class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
         predictions = []
         ground_truth = []
 
+        texts = []
+        raw_images = []
+        raw_gt_img = []
         annotations = json.load(open(self.annotation_file))
-        samples = len(annotations) // 10
-        annotations = annotations[:samples]
-
+        
         for img_id in tqdm(annotations, total=len(annotations)):
             ann = annotations[img_id]
             for sample in ann:
                 input_img = f"{self.image_dir}/{img_id}/{sample['input']}"
+                raw_images.append(Image.open(input_img))
                 text = self.get_prompt(sample['instruction'])
+                texts.append(text)
                 gt_img = f"{self.image_dir}/{img_id}/{sample['output']}"
+                raw_gt_img.append(Image.open(gt_img))
                 pred_img = self.model.generate_image(text, input_img)
                 predictions.append(pred_img)
                 ground_truth.append(gt_img)
+        
+        samples = len(raw_images)
+        self.save_details(raw_images[:samples], texts[:samples], raw_gt_img[:samples], "magic_brush.pkl")
 
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results, ground_truth
+        return predictions, ground_truth
     
     def evaluate_dataset_batched(self):
         pass

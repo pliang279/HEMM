@@ -48,7 +48,7 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
         return prompt_text
 
     def get_ground_truth(self, filename):
-        ground_truth = self.dataset.loc[self.dataset['screenId'] == filename]['summary']
+        ground_truth = list(self.dataset[self.dataset["screenId"] == int(filename)]["summary"])[-1]
         return ground_truth
 
     def evaluate_dataset(self,
@@ -65,6 +65,7 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
         data_file = open(self.test_file, 'r')
         data_lines = data_file.readlines()
 
+        cnt = 0
         for line in data_lines:
             file_name = line.strip()
             image_path = os.path.join(self.images_dir, file_name + '.jpg')
@@ -73,12 +74,9 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
+            cnt += 1
             
-        return predictions, results
+        return predictions, ground_truth
 
     def evaluate_dataset_batched(self,
                          model,
@@ -86,17 +84,12 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
                          ):
         # self.load()
         self.model = model
-        self.metric = metric
         
         predictions = []
         ground_truth = []
         
         texts = []
         images = []
-
-        self.images_dir = 'screen2wordsimages/unique_uis/combined'
-        self.csv_path = 'screen2words/screen_summaries.csv'
-        self.test_file = 'screen2words/split/test_screens.txt'
 
         self.dataset = pd.read_csv(self.csv_path)
 
@@ -110,15 +103,20 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
             text = self.get_prompt()
             texts.append(text)
             raw_image = Image.open(image_path).convert('RGB')
+            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
             ground_truth.append(ground_truth_answer)
         
-        samples = len(images) // 10
+        samples = len(images)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
         
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "screen2words.pkl")
+        
+        # results = {}
+        # for metric in self.metrics:
+        #     results[metric.name] = metric.compute(ground_truth[:samples], predictions)
             
-        return predictions, results, ground_truth[:samples]
+        return predictions, ground_truth[:samples]

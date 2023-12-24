@@ -57,13 +57,8 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
             gt_name = " ".join(all_images[idx].split("/")[-2].split("_")[-2:])
             ground_truth.append(gt_name.lower())
             predictions.append(output)
-
-        results = {}
-        for metric in self.metrics:
-            metric_val = metric.compute(ground_truth, predictions)
-            results[metric.name] = metric_val
         
-        return predictions, results
+        return predictions, ground_truth
      
     def evaluate_dataset_batched(self,
                          model,
@@ -77,12 +72,13 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
 
         images = []
         texts = []
+        # raw_images = []
 
         for idx in tqdm(range(len(all_images)), total=len(all_images)):
             image_path = all_images[idx]
             text = self.get_prompt()
-
-            raw_image = Image.open(image_path).convert('RGB')
+            raw_image = Image.open(image_path).convert("RGB")
+            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
             texts.append(text)
@@ -90,13 +86,16 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
             gt_name = " ".join(all_images[idx].split("/")[-2].split("_")[-2:])
             ground_truth.append(gt_name)
 
-        samples = len(images) // 10
+        samples = len(images)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "inat.pkl")
 
-        results = {}
-        for metric in self.metrics:
-            metric_val = metric.compute(ground_truth[:samples], predictions)
-            results[metric.name] = metric_val
+        # results = {}
+        # for metric in self.metrics:
+        #     metric_val = metric.compute(ground_truth[:samples], predictions)
+        #     results[metric.name] = metric_val
 
-        return predictions, results, ground_truth[:samples]
+        return predictions, ground_truth[:samples]
     

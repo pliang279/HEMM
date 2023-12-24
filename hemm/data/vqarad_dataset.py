@@ -53,12 +53,8 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
 
-        return predictions, results
+        return predictions, ground_truth
 
     def evaluate_dataset_batched(self,
                          model,
@@ -71,6 +67,7 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
         ground_truth = []
         images = []
         texts = []
+        # raw_images = []
         for data_dict in tqdm(self.dataset, total=len(self.dataset)):
             question = data_dict['question']
             image = data_dict['image']
@@ -88,10 +85,10 @@ class VQARADDatasetEvaluator(HEMMDatasetEvaluator):
         
         samples = len(images) // 10
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
 
-        return predictions, results, ground_truth[:samples]
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "vqarad.pkl")
+
+        return predictions, ground_truth[:samples]
         

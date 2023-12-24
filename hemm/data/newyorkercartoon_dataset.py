@@ -79,10 +79,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
                 else:
                     predictions.append(0)
         
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return outputs, results
+        return outputs, ground_truth
     
     def evaluate_dataset_batched(self,
                                 model,
@@ -94,6 +91,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         images = []
         ground_truth_list = []
         predictions = []
+        # raw_images = []
         print(len(os.listdir(self.image_dir)))
         for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
             img_id = img.split('.jpg')[0]
@@ -115,6 +113,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
                 text = self.get_prompt(captions[i])
                 texts.append(text)
                 raw_image = Image.open(img_path).convert('RGB')
+                # raw_images.append(raw_image)
                 image = self.model.get_image_tensor(raw_image)
                 images.append(image)
                 if i == 0:
@@ -122,24 +121,23 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
                 else:
                     ground_truth_list.append(0)
         
-        print(len(images))
-        import pickle 
-        pickle.dump(images, open("./temp.pkl", "wb"))
-        print(type(images))
+        # print(len(images))
+        # import pickle 
+        # pickle.dump(images, open("./temp.pkl", "wb"))
+        # print(type(images))
         # images_tensor = torch.cat(images, dim=0)
         # images_tensor = images_tensor.to(self.model.device)
         # outputs = self.model.generate_batch(images_tensor, texts, batch_size)
-        samples = len(images) // 10
+        samples = len(images)
         outputs = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth_list[:samples], "newyorkercartoon.pkl")
 
         for answer in outputs:
             if answer == 'yes':
                 predictions.append(1)
             else:
                 predictions.append(0)
-
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth_list[:samples], predictions)
         
-        return outputs, results, ground_truth_list[:samples]    
+        return outputs, ground_truth_list[:samples]    

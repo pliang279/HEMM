@@ -55,12 +55,8 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(label)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
 
-        return predictions, results
+        return predictions, ground_truth
     
     def evaluate_dataset_batched(self,
                          model,
@@ -74,12 +70,14 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
 
         texts = []
         images = []
+        # raw_images = []
 
         for row in tqdm(self.annotation, total=len(self.annotation)):
             label = row["answer"]
             question = row["question"]
             image_path = f"{self.image_dir}/{row['img_name']}"
             raw_image = Image.open(image_path).convert('RGB')
+            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
             text = self.get_prompt(question)
@@ -88,9 +86,8 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
         
         samples = len(images) // 10
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "slake.pkl")
 
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-
-        return predictions, results, ground_truth[:samples]
+        return predictions, ground_truth[:samples]

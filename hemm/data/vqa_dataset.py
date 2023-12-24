@@ -71,11 +71,7 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
         
-        results = {}
-        for metric in self.metrics:
-           results[metric.name] = metric.compute(ground_truth, predictions)
-        
-        return predictions, results
+        return predictions, ground_truth
     
     def evaluate_dataset_batched(self,
                                  model,
@@ -85,6 +81,7 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
       self.model = model
       texts = []
       images = []
+      # raw_images = []
       ground_truth = []
       image_dir = 'vqa_images'
       annotation_file = json.load(open(os.path.join('vqa_annotations', 'abstract_v002_val2015_annotations.json'), 'r'))
@@ -94,16 +91,18 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
           question = data_dict['question']
           image_path = os.path.join(image_dir, "abstract_v002_val2015_0000000{}".format(str(data_dict['image_id']))+'.png')
           raw_image = Image.open(image_path).convert('RGB')
+          # raw_images.append(raw_image)
           image = self.model.get_image_tensor(raw_image)
           images.append(image)
           ground_truth_answer = self.get_ground_truth_answer(annotation_file, data_dict['question_id'])
           text = self.get_prompt(question)
           texts.append(text)
           ground_truth.append(ground_truth_answer)
-      samples = len(images) // 10
+
+      samples = len(images)
       predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-      results = {}
-      for metric in self.metrics:
-        results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+      # print(len(raw_images))
+      # samples = len(raw_images)
+      # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "vqa.pkl")
       
-      return predictions, results, ground_truth[:samples]
+      return predictions, ground_truth[:samples]

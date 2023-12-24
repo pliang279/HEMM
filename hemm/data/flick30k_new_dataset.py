@@ -58,10 +58,7 @@ class Flickr30kDatasetEvaluator(HEMMDatasetEvaluator):
 			output = self.model.generate(text, image_path)
 			predictions.append(output)
 
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth, predictions)
-		return predictions, results
+		return predictions, ground_truth
 
 	def evaluate_dataset_batched(self,
 						 model,
@@ -85,12 +82,11 @@ class Flickr30kDatasetEvaluator(HEMMDatasetEvaluator):
 			text = self.get_prompt()
 			texts.append(text)
 
-		samples = len(images) // 10
+		samples = len(images)
 		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
 
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+		# samples = len(raw_images)
+		# self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "flickr30k.pkl")
 
-		return predictions, results, ground_truth[:samples]
+		return predictions, ground_truth[:samples]
 	

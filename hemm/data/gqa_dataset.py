@@ -21,7 +21,7 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
         self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def __len__(self):       
-       question_file = json.load(open(os.path.join('gqa_questions', 'val_all_questions.json'), 'r'))
+       question_file = json.load(open(os.path.join('gqa_questions', 'testdev_all_questions.json'), 'r'))
        return len(question_file)
 
     def load(self):
@@ -50,14 +50,13 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
                          ) -> None:
         self.load()
         self.model = model
-        image_dir = 'gqa_images/images'
-        annotation_file = json.load(open(os.path.join('gqa_scene_graphs', 'val_sceneGraphs.json'), 'r'))
-        question_file = json.load(open(os.path.join('gqa_questions', 'val_all_questions.json'), 'r'))
+        image_dir = 'gqa_images/'
+        question_file = json.load(open(os.path.join('gqa_questions', 'testdev_all_questions.json'), 'r'))
         
         ground_truth = []
         predictions = []
+        cnt = 0
         for data_index in tqdm(question_file, total=len(question_file)):
-            # print(question_file[data_index])
             question = question_file[data_index]['question']
             image_path = os.path.join(image_dir, question_file[data_index]['imageId']+'.jpg')
             ground_truth_answer = question_file[data_index]['answer']
@@ -65,21 +64,19 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
-        
-        results = {}
-        for metric in self.metrics:
-           results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+            cnt += 1
+
+        return predictions, ground_truth
 
     def evaluate_dataset_batched(self,
                          model,
                          batch_size=32
                          ) -> None:
-        self.load()
+        # self.load()
         self.model = model
-        image_dir = 'gqa_images/images'
-        annotation_file = json.load(open(os.path.join('gqa_scene_graphs', 'val_sceneGraphs.json'), 'r'))
-        question_file = json.load(open(os.path.join('gqa_questions', 'val_all_questions.json'), 'r'))
+        image_dir = 'gqa_images/'
+
+        question_file = json.load(open(os.path.join('gqa_questions', 'testdev_all_questions.json'), 'r'))
         
         ground_truth = []
         predictions = []
@@ -88,11 +85,11 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
         images = []
 
         for data_index in tqdm(question_file, total=len(question_file)):
-            # print(question_file[data_index])
             question = question_file[data_index]['question']
             image_path = os.path.join(image_dir, question_file[data_index]['imageId']+'.jpg')
-            raw_image = Image.open(image_path).convert('RGB')
-            image = self.model.get_image_tensor(raw_image)
+            # raw_image = Image.open(image_path).convert('RGB')
+            # raw_images.append(raw_image)
+            image = self.model.get_image_tensor(Image.open(image_path).convert('RGB'))
             images.append(image)
 
             ground_truth_answer = question_file[data_index]['answer']
@@ -100,12 +97,11 @@ class GQADatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             ground_truth.append(ground_truth_answer)
         
-        samples = len(images) // 10
+        samples = len(images)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-
-        results = {}
-        for metric in self.metrics:
-           results[metric.name] = metric.compute(ground_truth[:samples], predictions)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "gqa.pkl")
            
-        return predictions, results, ground_truth[:samples]
+        return predictions, ground_truth[:samples]
     

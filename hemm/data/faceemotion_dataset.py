@@ -75,10 +75,7 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
 
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+        return predictions, ground_truth
 
     def evaluate_dataset_batched(self,
                          model,
@@ -107,15 +104,15 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             
             raw_image = Image.open(image_path).convert('RGB')
+            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
 
-        samples = len(images) // 10
+        samples = len(images)
+        # print(len(raw_images))
+        # samples = len(raw_images) // 10
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "face_emotion.pkl")
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-    
-        return predictions, results, ground_truth[:samples]
+ 
+        return predictions, ground_truth[:samples]
     

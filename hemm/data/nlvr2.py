@@ -23,34 +23,37 @@ import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
+from hemm.metrics.bertscore_metric import BertScoreMetric
+from hemm.metrics.bleu_metric import BleuMetric
+from hemm.utils.common_utils import shell_command
 
-class NLVR2evaluator(Dataset):
-    def __init__(self,
-                 train_json_path,
-                 device,
-                 ):
-        self.train_json = [json.loads(line) for line in open(train_json_path).readlines()]
+class NLVR2evaluator(HEMMDatasetEvaluator):
+    def __init__(self, annotation_file="./nlvr/nlvr2/data/dev.json", device="cpu"):
+        self.train_json = [json.loads(line) for line in open(annotation_file).readlines()]
         self.device = device
         self.prompt = NLVR2prompt()
+        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def get_prompt(self, text):
         prompt_text = self.prompt.format_prompt(text)
         return prompt_text
 
+    def load(self):
+        pass
+
     def evaluate_dataset(self,
                          model,
-                         metric,
                          ) -> None:
         res = []
         gt=[]
         preds=[]
-        for i in range(len(self.train_json)):
+        texts = []
+        for i in tqdm(range(len(self.train_json)), total=len(self.train_json)):
             left_url=self.train_json[i]['left_url']
             right_url=self.train_json[i]['right_url']
             label=self.train_json[i]['label']
             label=label.lower()
             sentence=self.train_json[i]['sentence']
-            gt.append(label)
             try:
               img_1=Image.open(requests.get(left_url, stream=True).raw)
               img_2=Image.open(requests.get(right_url, stream=True).raw)
@@ -64,11 +67,20 @@ class NLVR2evaluator(Dataset):
               image.paste(img_2,(avg_size[0],0))
             except:
               continue
-            question=self.get_prompt(sentence)
-            answer = model.generate({"image": image, "prompt": question})[0]
+            text = self.get_prompt(sentence)
+            texts.append(text)
+            # raw_images.append(image)
+            answer = model.generate(text, image)
             answer =''.join(filter(str.isalpha, answer.lower()))
-            #question = self.questions[index][f'query_{qu_k}']
+            # question = self.questions[index][f'query_{qu_k}']
             preds.append(answer)
+            gt.append(label)
 
-        results = self.metric.compute(gt, preds)
-        return results
+        # print(len(raw_images), len(texts), len(gt))
+
+        # self.save_details(raw_images, texts, gt, "nlvr2.pkl")
+        return preds, gt
+    
+    def evaluate_dataset_batched(self):
+        pass
+    

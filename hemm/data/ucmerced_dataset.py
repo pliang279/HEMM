@@ -61,11 +61,8 @@ class UCMercedDatasetEvaluator(HEMMDatasetEvaluator):
             output = self.model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
-        
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth, predictions)
-        return predictions, results
+    
+        return predictions, ground_truth
     
     def evaluate_dataset_batched(self,
                          model,
@@ -79,6 +76,7 @@ class UCMercedDatasetEvaluator(HEMMDatasetEvaluator):
 
         texts = []
         images = []
+        # raw_images = []
 
         csv_path = 'ucmercedimages/validation.csv'
         df = pd.read_csv(csv_path)
@@ -88,16 +86,18 @@ class UCMercedDatasetEvaluator(HEMMDatasetEvaluator):
             image_path = os.path.join(images_dir, row['Filename'])
             ground_truth_answer = row['ClassName']
             raw_image = Image.open(image_path).convert('RGB')
+            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
             text = self.get_prompt()
             texts.append(text)
             ground_truth.append(ground_truth_answer)
         
-        samples = len(images) // 10
+        samples = len(images)
         predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        # print(len(raw_images))
+        # samples = len(raw_images)
+        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "ucmerced.pkl")
 
-        results = {}
-        for metric in self.metrics:
-            results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-        return predictions, results, ground_truth[:samples]
+        return predictions, ground_truth[:samples]
+    
