@@ -1,5 +1,6 @@
 from hemm.metrics import accuracy_metric, bleu_metric, bertscore_metric
-from hemm.models import blip2_model, minigpt4_model, instruct_blip, gill_model, kosmos2, openflamingo_model 
+from hemm.models import blip2_model, minigpt4_model, instruct_blip, gill_model, kosmos2, \
+                         openflamingo_model, llama_adapter_model, emu_model, mplugowl_model
 from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_dataset, \
                         memotion_dataset, memecaps_dataset, irfl_dataset, scienceQA_dataset, \
                         vqa_dataset,vcr_dataset, ok_vqa_dataset, gqa_dataset, vqarad_dataset, \
@@ -9,7 +10,6 @@ from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_da
                         decimer_dataset, enrico_dataset, inat_dataset, magic_brush_dataset, mmimdb_dataset, \
                         plip_kather_dataset, slake_dataset
                         
-
 def load_model(model_key):
     model_dict = {
         'minigpt4': minigpt4_model.MiniGPT4(),
@@ -18,6 +18,9 @@ def load_model(model_key):
         'gill': gill_model.GILL(),
         'kosmos2': kosmos2.Kosmos2(),
         'openflamingo': openflamingo_model.OpenFlamingoModel(),
+        'llama_adapter': llama_adapter_model.LlamaAdapter(),
+        'emu': emu_model.EmuModel(),
+        'mplugowl': mplugowl_model.MplugOwl(),
     }
     return model_dict[model_key]
 
@@ -41,38 +44,37 @@ def load_dataset_evaluator(kaggle_api_path=None):
             kaggle_api_path=kaggle_api_path
         ),
         'memecaps':memecaps_dataset.MemeCapsDatasetEvaluator(),
-        # 'irfl':irfl_dataset.IRFLDatasetEvaluator(),
+        'irfl':irfl_dataset.IRFLDatasetEvaluator(),
         'scienceqa':scienceQA_dataset.ScienceQADatasetEvaluator(),
         'vqa': vqa_dataset.VQADatasetEvaluator(),
-        # 'vcr': vcr_dataset.VCRDatasetEvaluator(),
+        'vcr': vcr_dataset.VCRDatasetEvaluator(),
         'okvqa': ok_vqa_dataset.OKVQADatasetEvaluator(dataset_dir='/work/agoindan/.cache/'),
-        # 'gqa': gqa_dataset.GQADatasetEvaluator(),
-        # 'winogroundVQA': winogroundVQA_dataset.WinogroundVQAEvaluator(),
-        # 'nlvr':nlvr_dataset.NLVRDatasetEvaluator(),
-        # 'nlvr2':nlvr2.NLVR2evaluator(),
-        #'cocoqa':cocoqa_dataset.cocoqaEvaluator(),
+        'gqa': gqa_dataset.GQADatasetEvaluator(),
+        'winogroundVQA': winogroundVQA_dataset.WinogroundDatasetEvaluator(),
+        'nlvr':nlvr_dataset.NLVRDatasetEvaluator(),
+        'nlvr2':nlvr2.NLVR2evaluator(),
         'visualgen':visualgenome_dataset.VisualGenomeEvaluator(),
         'vqarad': vqarad_dataset.VQARADDatasetEvaluator(),
         'pathvqa': pathvqa_dataset.PathVQADatasetEvaluator(),
         'ucmerced':ucmerced_dataset.UCMercedDatasetEvaluator(
             kaggle_api_path=kaggle_api_path
         ),
-        # 'resisc45':resisc45_dataset.Resisc45DatasetEvaluator(
-        #     kaggle_api_path=kaggle_api_path
-        # ),
+        'resisc45':resisc45_dataset.Resisc45DatasetEvaluator(
+            kaggle_api_path=kaggle_api_path
+        ),
         'face_emotion': faceemotion_dataset.FaceEmotionDatasetEvaluator(
             kaggle_api_path=kaggle_api_path
         ),
-        # 'screen2words':screen2words_dataset.Screen2WordsDatasetEvaluator(
-        #     kaggle_api_path=kaggle_api_path
-        # ),
+        'screen2words':screen2words_dataset.Screen2WordsDatasetEvaluator(
+            kaggle_api_path=kaggle_api_path
+        ),
         'decimer':decimer_dataset.DecimerDatasetEvaluator(),
         'slake':slake_dataset.SlakeDatasetEvaluator(),
         'enrico': enrico_dataset.EnricoDatasetEvaluator(),
         'flickr30k': flick30k_new_dataset.Flickr30kDatasetEvaluator(),
         'inat': inat_dataset.INATDatasetEvaluator(),
-        'magic_brush': magic_brush_dataset.MagicBrushDatasetEvaluator(),
+        # 'magic_brush': magic_brush_dataset.MagicBrushDatasetEvaluator(),
         'mmimdb': mmimdb_dataset.MMIMDBDatasetEvaluator(), 
+        "plip": plip_kather_dataset.PlipKatherDatasetEvaluator(),
     }
-    # return dataset_dict[dataset_key]
     return dataset_dict
