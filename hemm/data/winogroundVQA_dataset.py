@@ -3,12 +3,13 @@ import json
 from typing import Optional, Union, List
 from PIL import Image
 import torch
-from datasets import load_dataset, concatenate_datasets
+from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset
 
 from hemm.prompts.winoground_prompt import WinogroundPrompt
 from hemm.data.dataset import HEMMDatasetEvaluator
+from hemm.metrics.metric import HEMMMetric
 from hemm.metrics.bertscore_metric import BertScoreMetric
 
 class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
@@ -33,9 +34,6 @@ class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
     def get_prompt(self, text):
         prompt_text = self.prompt.format_prompt(text)
         return prompt_text
-
-    def evaluate_dataset(self,
-                         model,
 
     def evaluate_dataset(self,
                          model,
@@ -69,10 +67,7 @@ class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
         return predictions, ground_truth
 
     def evaluate_dataset_batched(self,
-    def evaluate_dataset_batched(self,
                          model,
-                         batch_size=32
-                         ):
                          batch_size=32
                          ):
         pass
