@@ -3,8 +3,8 @@ import argparse
 import json
 
 import torch
-from hemm.models.emu.models.modeling_emu import Emu
-from hemm.models.emu.utils import process_img, process_video
+from models.modeling_emu import Emu
+from utils import process_img, process_video
 
 image_placeholder = "[IMG]" + "<image>" * 32 + "[/IMG]"
 image_system_msg = "You will be presented with an image: [IMG]ImageContent[/IMG]. You will be able to see the image after I provide it to you. Please answer my questions based on the given image."
@@ -79,7 +79,7 @@ def Emu_inference(image_list, text_sequence, system='', instruct=True, max_new_t
         repetition_penalty=1.0,
     )[0].strip()
 
-    return output_text
+    print(f"===> output: {output_text}\n")
 
 
 def Emu_instruct_caption(img):

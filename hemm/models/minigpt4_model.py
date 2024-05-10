@@ -5,7 +5,7 @@ import re
 import torch
 from tqdm import tqdm
 import time
-
+import yaml
 from hemm.models.minigpt4.common.config import Config
 from hemm.models.minigpt4.common.dist_utils import get_rank
 from hemm.models.minigpt4.common.registry import registry
@@ -25,41 +25,31 @@ def parse_args():
         "in xxx=yyy format will be merged into config file (deprecate), "
         "change to --cfg-options instead.",
     )
-    args = parser.parse_args(["--cfg-path", "/home/agoindan/HEMM/hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml"])
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    args = parser.parse_args(["--cfg-path", os.path.join(current_dir, "minigpt4/configs/eval_configs/minigpt4_eval.yaml")])
     return args
 
 class MiniGPT4(HEMMModel):
-    def __init__(self):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, device="cuda", download_dir="./"):
+        self.device = torch.device(device)
+        self.download_dir = download_dir
     
     def load_weights(self):
-        # if not os.path.exists('MiniGPT-4'):
-        #     subprocess.Popen('git clone https://github.com/Vision-CAIR/MiniGPT-4.git', shell=True)
-        if not os.path.exists('prerained_minigpt4_7b.pth'):
-            shell_command('wget https://huggingface.co/wangrongsheng/MiniGPT4-7B/resolve/main/prerained_minigpt4_7b.pth')
+        if not os.path.exists(f'{self.download_dir}/prerained_minigpt4_7b.pth'):
+            shell_command(f'wget https://huggingface.co/wangrongsheng/MiniGPT4-7B/resolve/main/prerained_minigpt4_7b.pth -P {self.download_dir}')
 
+        current_dir = os.path.dirname(os.path.abspath(__file__))
         # Read in the file
-        with open('/home/agoindan/HEMM/hemm/models/minigpt4/configs/models/minigpt4.yaml', 'r') as file:
-            filedata = file.read()
-
-        # Replace the target string
-        filedata = filedata.replace('/path/to/vicuna/weights/', 'wangrongsheng/MiniGPT-4-LLaMA-7B')
-
-        # Write the file out again
-        with open('/home/agoindan/HEMM/hemm/models/minigpt4/configs/models/minigpt4.yaml', 'w') as file:
-            file.write(filedata)
-
-        # Read in the file
-        with open('/home/agoindan/HEMM/hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml', 'r') as file:
-            filedata = file.read()
-
-        # Replace the target string
-        filedata = filedata.replace('/path/to/pretrained/ckpt/', 'prerained_minigpt4_7b.pth')
-
-        # Write the file out again
-        with open('/home/agoindan/HEMM/hemm/models/minigpt4/configs/eval_configs/minigpt4_eval.yaml', 'w') as file:
-            file.write(filedata)
+        with open(os.path.join(current_dir, "minigpt4/configs/eval_configs/minigpt4_eval.yaml"), 'r') as file:
+            filedata = yaml.safe_load(file)
         
+        filedata["model"]["ckpt"] = f'{self.download_dir}/prerained_minigpt4_7b.pth'
+        filedata["model"]["prompt_path"] = os.path.join(current_dir, "minigpt4/prompts/alignment.txt")
+
+        # Write the file out again
+        with open(os.path.join(current_dir, "minigpt4/configs/eval_configs/minigpt4_eval.yaml"), 'w', encoding='utf8') as file:
+            yaml.dump(filedata, file, default_flow_style=False, allow_unicode=True) 
+
         args = parse_args()
         cfg = Config(args)
 
@@ -81,9 +71,8 @@ class MiniGPT4(HEMMModel):
     def ask_message(self, user_message, chat_state):
         if len(user_message) == 0:
             print("Input should not be empty!")
-            # return gr.update(interactive=True, placeholder='Input should not be empty!'), chatbot, chat_state
+            
         self.chat.ask(user_message, chat_state)
-        # chatbot = chatbot + [[user_message, None]]
         return chat_state
 
     def answer_question(self, chat_state, img_list, num_beams, temperature):
@@ -91,9 +80,9 @@ class MiniGPT4(HEMMModel):
                                 img_list=img_list,
                                 num_beams=num_beams,
                                 temperature=temperature,
-                                max_new_tokens=300,
+                                max_new_tokens=100,
                                 max_length=2000)[0]
-        # print(llm_message)
+
         return llm_message, chat_state, img_list
     
     def generate(self, text, image):
@@ -117,15 +106,14 @@ class MiniGPT4(HEMMModel):
                 return None    
 
     def get_image_tensor(self, image):
-        image_tensor = self.chat.vis_processor(image).unsqueeze(0).to(self.chat.device)
+        image_tensor = self.chat.vis_processor(image).unsqueeze(0)
         return image_tensor
 
-    def generate_batch_func(self, images, texts, batch_size, max_new_tokens=512, num_beams=3):
+    def generate_batch_func(self, images, texts, batch_size, max_new_tokens=100, num_beams=3):
         answers = []
         convs = [CONV_VISION.copy() for _ in range(batch_size)]
         [self.chat.ask('<Img><ImageHere></Img> {} '.format(text), conv) for conv, text in zip(convs, texts)]
         [conv.append_message(conv.roles[1], None) for conv in convs]
-        # [conv.append_message(None, None) for conv in convs]
         
         with torch.no_grad():
             image_embs, _ = self.chat.model.encode_img(images.to(self.chat.device))
@@ -145,8 +133,7 @@ class MiniGPT4(HEMMModel):
             emb_len = emb.shape[1]
             embs[i, -emb_len:] = emb[0]
             attn_mask[i, -emb_len:] = 1
-            
-    #     outputs = self.chat.emb_generate(embs, max_new_tokens=20, attention_mask=attn_mask)
+
         with torch.no_grad():
             outputs = self.chat.model.llama_model.generate(
                         inputs_embeds=embs,
@@ -160,14 +147,14 @@ class MiniGPT4(HEMMModel):
             if output_token[0] == 0:
                 output_token = output_token[1:]
             output_texts = self.chat.model.llama_tokenizer.decode(output_token, add_special_tokens=False)
-            output_texts = output_texts.split('</s>')[0]  # remove the stop sign '###'
+            output_texts = output_texts.split('</s>')[0]
             output_texts = output_texts.replace("<s>","")
             output_texts = output_texts.split(r'[/INST]')[-1].strip()
             answers.append(output_texts)
 
         return answers
 
-    def generate_batch(self, images, texts, batch_size, max_new_tokens=10, num_beams=3):
+    def generate_batch(self, images, texts, batch_size, max_new_tokens=100, num_beams=3):
         answers = []
         total_batches = len(texts) // batch_size
 
@@ -176,7 +163,7 @@ class MiniGPT4(HEMMModel):
             end_idx = (batch_idx + 1) * batch_size 
             
             batch_texts = texts[start_idx:end_idx]
-            batch_images = images[start_idx:end_idx]
+            batch_images = images[start_idx:end_idx].to(self.chat.device)
             batch_answers = self.generate_batch_func(batch_images, batch_texts, batch_size, max_new_tokens, num_beams)
             answers.extend(batch_answers)
             
@@ -185,7 +172,6 @@ class MiniGPT4(HEMMModel):
             start_idx = total_batches * batch_size
             end_idx = len(texts)
 
-            # Get the remaining data as a smaller batch
             batch_texts = texts[start_idx:end_idx]
             batch_images = images[start_idx:end_idx]
             batch_answers = self.generate_batch_func(batch_images, batch_texts, batch_size, max_new_tokens, num_beams)

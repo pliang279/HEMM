@@ -4,15 +4,15 @@ import torch
 import torch.distributed as dist
 import transformers
 
-from hemm.models.emu.mm_eval.datasets.mmvet import mmvet_dataloader, mmvet_results_processor
-from hemm.models.emu.mm_eval.datasets.mmbench import mmbench_dataloader, mmbench_results_processor
-from hemm.models.emu.mm_eval.datasets.coco import coco_dataloader, coco_results_processor
-from hemm.models.emu.mm_eval.datasets.visdial import visdial_dataloader, visdial_results_processor
-from hemm.models.emu.mm_eval.datasets.okvqa import okvqa_dataloader, okvqa_results_processor
-from hemm.models.emu.mm_eval.datasets.vqav2 import vqav2_dataloader, vqav2_results_processor
-from hemm.models.emu.mm_eval.datasets.vizwiz import vizwiz_dataloader, vizwiz_results_processor
+from .datasets.mmvet import mmvet_dataloader, mmvet_results_processor
+from .datasets.mmbench import mmbench_dataloader, mmbench_results_processor
+from .datasets.coco import coco_dataloader, coco_results_processor
+from .datasets.visdial import visdial_dataloader, visdial_results_processor
+from .datasets.okvqa import okvqa_dataloader, okvqa_results_processor
+from .datasets.vqav2 import vqav2_dataloader, vqav2_results_processor
+from .datasets.vizwiz import vizwiz_dataloader, vizwiz_results_processor
 
-from hemm.models.emu.models.emu import emu_inference
+from .models.emu import emu_inference
 
 image_placeholder = "[IMG]" + "<image>" * 32 + "[/IMG]"
 image_system_msg = "You will be presented with an image: [IMG]ImageContent[/IMG]. You will be able to see the image after I provide it to you. Please answer my questions based on the given image."

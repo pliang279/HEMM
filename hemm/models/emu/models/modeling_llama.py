@@ -2,7 +2,7 @@
 LLaMA model from transformers, following stanford's Alpaca
 """
 
-MODEL_PATH = "./models/llama_config"
+MODEL_PATH = "/home/agoindan/Emu/models/llama_config"
 
 from typing import Dict, List, Optional
 from dataclasses import dataclass

@@ -7,7 +7,7 @@ import torch.nn as nn
 
 from transformers.utils import logging
 from transformers.models.t5.configuration_t5 import T5Config
-from hemm.models.emu.models.modeling_t5 import T5ForConditionalGeneration
+from .modeling_t5 import T5ForConditionalGeneration
 
 logger = logging.get_logger(__name__)
 

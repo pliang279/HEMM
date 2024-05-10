@@ -14,7 +14,7 @@ from diffusers import AutoencoderKL, PNDMScheduler, UNet2DConditionModel
 from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
 from transformers import CLIPImageProcessor
 
-from hemm.models.emu.models.modeling_emu import Emu
+from .modeling_emu import Emu
 
 
 class EmuGenerationPipeline(nn.Module):
@@ -221,15 +221,16 @@ class EmuGenerationPipeline(nn.Module):
         model_path: str,
         **kwargs,
     ) -> nn.Module:
-        with open(f'models/{model_name}.json', "r", encoding="utf8") as f:
+        
+        with open(f'/home/agoindan/Emu/models/{model_name}.json', "r", encoding="utf8") as f:
             model_cfg = json.load(f)
 
         model = Emu(**model_cfg, cast_dtype=torch.float, **kwargs)
         ckpt = torch.load(model_path, map_location="cpu")
         if "module" in ckpt:
-            model.load_state_dict(ckpt["module"], strict=True)
+            model.load_state_dict(ckpt["module"], strict=False)
         else:
-            model.load_state_dict(ckpt, strict=True)
+            model.load_state_dict(ckpt, strict=False)
 
         return model
 
