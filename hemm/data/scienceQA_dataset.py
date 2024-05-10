@@ -9,19 +9,13 @@ from tqdm import tqdm
 import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
-from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.scienceqa_prompt import ScienceQAPrompt
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
 
 class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
-    def __init__(self,
-                 ):
+    def __init__(self, download_dir="./", dataset_dir=None, annotation_file=None, **kwargs):
         super().__init__()
-        self.dataset_key = 'scienceqa'
+        self.download_dir = download_dir
         self.prompt = ScienceQAPrompt()
-        self.metrics = [BertScoreMetric(), BleuMetric()]
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.load()
  
     def get_prompt(self, question_s, choices, lecture, context) -> str:
@@ -29,7 +23,7 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
         return prompt_text
 
     def load(self):
-        self.dataset = load_dataset("derek-thomas/ScienceQA")
+        self.dataset = load_dataset("derek-thomas/ScienceQA", cache_dir=self.download_dir)
         self.dataset = self.dataset['test']
 
     def __len__(self):
@@ -39,7 +33,6 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
                          model,
                          ) -> None:
         
-        self.model = model
         predictions = []
         ground_truth = []
         for item in tqdm(self.dataset, total=len(self.dataset)):
@@ -60,11 +53,11 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
                 curr_choice_str = str(ind+1) + ') ' + choice
                 question = question + curr_choice_str + '\n'
             question += '\n'
-            with open("current_image.jpg", 'wb') as f:
+            with open(f"{self.download_dir}/current_image.jpg", 'wb') as f:
                 image_url.save(f)
-                image_path = "current_image.jpg"
+                image_path = f"{self.download_dir}/current_image.jpg"
             
-            ans = self.model.generate(question, image_path)
+            ans = model.generate(question, image_path)
             predictions.append(ans)
         
         return predictions, ground_truth
@@ -74,7 +67,6 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
                          batch_size=32
                          ) -> None:
         
-        self.load()
         self.model = model
         predictions = []
         ground_truth = []
@@ -100,21 +92,15 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
                 question = question + curr_choice_str + '\n'
             question += '\n'
             texts.append(question)
-            with open("current_image.jpg", 'wb') as f:
+            with open(f"{self.download_dir}/current_image.jpg", 'wb') as f:
                 image_url.save(f)
-                image_path = "current_image.jpg"
+                image_path = f"{self.download_dir}/current_image.jpg"
             
             raw_image = Image.open(image_path).convert('RGB')
 
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
 
-        samples = len(images)
-        # print(samples)
-        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        # print(len(raw_images))
-        # samples = len(raw_images)
-        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "scienceqa.pkl")
-        
-        return predictions, ground_truth[:samples]
+        predictions = self.predict_batched(images, texts, batch_size)        
+        return predictions, ground_truth
     

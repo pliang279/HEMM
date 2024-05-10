@@ -11,49 +11,52 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.nocaps_prompt import NoCapsPrompt
 from hemm.utils.common_utils import shell_command
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
+from huggingface_hub import snapshot_download
 
 class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset_dir = './nocaps_val_4500_captions.json',
-                 ):
+                    download_dir="./", 
+                    dataset_dir="nocaps_images/",
+                    annotation_file='nocaps_images/nocaps_val_4500_captions.json',
+                    **kwargs):
         super().__init__()
-        self.dataset_dir = dataset_dir
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.annotation_file = os.path.join(download_dir, annotation_file)
+        self.dataset_dir = os.path.join(download_dir, dataset_dir)
         self.prompt = NoCapsPrompt()
-        self.metrics = [BertScoreMetric(), BleuMetric()]
+        self.load()
 
     def get_prompt(self) -> str:
         prompt_text = self.prompt.format_prompt()
         return prompt_text
     
     def __len__(self):
-        json_file = json.load(open(self.dataset_dir, 'r'))
+        json_file = json.load(open(self.annotation_file, 'r'))
         return len(json_file["images"])
 
     def load(self):
-        shell_command('wget https://s3.amazonaws.com/nocaps/nocaps_val_4500_captions.json')
+        if not os.path.exists(self.dataset_dir):
+            shell_command(f"mkdir -p {self.dataset_dir}")
+            snapshot_download(repo_id="akshayg08/NocapsTest", repo_type="dataset", local_dir=self.dataset_dir)
+            shell_command(f"wget https://s3.amazonaws.com/nocaps/nocaps_val_4500_captions.json -P {self.dataset_dir}")
     
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load()
-        self.model = model
-        json_file = json.load(open(self.dataset_dir, 'r'))
+
+        json_file = json.load(open(self.annotation_file, 'r'))
         predictions = []
         ground_truth = []
         for index, image_dict in tqdm(enumerate(json_file['images']), total=len(json_file['images'])):
-            image_url = image_dict['coco_url']
-            image_caption = json_file['annotations'][image_dict['id']]['caption']
+            fn = image_dict["file_name"]
+            captions = []
+            for ann in json_file["annotations"][10*index: 10*(index + 1)]:
+                captions.append(ann["caption"])
+            
+            ground_truth.append(captions)
             text = self.get_prompt()
-            response = requests.get(image_url)
-            if response.status_code == 200:
-                with open("./current_image.jpg", 'wb') as f:
-                    f.write(response.content)
-            image_path = "./current_image.jpg"
-            ground_truth.append(image_caption)
-            output = self.model.generate(text, image_path)
+
+            image_path = os.path.join(self.dataset_dir, fn)
+            output = model.generate(text, image_path)
             predictions.append(output)
 
         return predictions, ground_truth
@@ -62,9 +65,8 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
                          model,
                          batch_size=32
                          ):
-        self.load()
         self.model = model
-        json_file = json.load(open(self.dataset_dir, 'r'))
+        json_file = json.load(open(self.annotation_file, 'r'))
         predictions = []
         ground_truth = []
 
@@ -72,28 +74,20 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
         images = []
 
         for index, image_dict in tqdm(enumerate(json_file['images']), total=len(json_file['images'])):
-            image_url = image_dict['coco_url']
-            image_caption = json_file['annotations'][image_dict['id']]['caption']
+            fn = image_dict["file_name"]
+
+            captions = []
+            for ann in json_file["annotations"][10*index: 10*(index + 1)]:
+                captions.append(ann["caption"])
+            
+            ground_truth.append(captions)
             text = self.get_prompt()
-            response = requests.get(image_url)
-            if response.status_code == 200:
-                with open("./current_image.jpg", 'wb') as f:
-                    f.write(response.content)
-            image_path = "./current_image.jpg"
-            # print(image_url)
-            # print(image_path)
+            image_path = os.path.join(self.dataset_dir, fn)
             raw_image = Image.open(image_path).convert('RGB')
             image = self.model.get_image_tensor(raw_image)
-            images.append(image)
-            
+            images.append(image)            
             texts.append(text)
-            ground_truth.append(image_caption)
         
-        samples = len(images)
-        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        # print(len(raw_images))
-        # samples = len(raw_images)
-        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "nocaps.pkl")
-
-        return predictions, ground_truth[:samples]
+        predictions = self.predict_batched(images, texts, batch_size)
+        return predictions, ground_truth
     

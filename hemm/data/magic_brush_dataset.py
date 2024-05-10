@@ -8,25 +8,26 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.magic_brush_prompt import MagicBrushPrompt
-from hemm.metrics.image_match_metric import MSEMetric, CLIPIMetric
+from huggingface_hub import snapshot_download
 
 class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 image_dir="/work/agoindan/magic_brush/test/images",
-                 annotation_file="/work/agoindan/magic_brush/test/edit_sessions.json",
-                 device="cpu",
-                 ):
+                download_dir="./",
+                dataset_dir="magic_brush/images",
+                annotation_file="magic_brush/edit_sessions.json",
+                **kwargs,
+                ):
         super().__init__()
-        self.image_dir = image_dir
-        self.device = device
+        self.download_dir = download_dir
+        self.image_dir = os.path.join(download_dir, dataset_dir)
         self.prompt = MagicBrushPrompt()
-        self.annotation_file = annotation_file
-
-        # TODO
-        self.metrics = [MSEMetric(), CLIPIMetric(self.device)]
+        self.annotation_file = os.path.join(download_dir, annotation_file)
+        self.load()
 
     def load(self):
-        pass
+        if not os.path.exists(f"{self.download_dir}/magic_brush/"):
+            shell_command(f"mkdir -p {self.download_dir}/magic_brush")
+            snapshot_download(repo_id="akshayg08/MagicBrushTest", repo_type="dataset", local_dir=f"{self.download_dir}/magic_brush/")
 
     def __len__(self):
         annotations = json.load(open(self.annotation_file))
@@ -39,35 +40,26 @@ class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load()
-        self.model = model
-        
+ 
         predictions = []
         ground_truth = []
 
         texts = []
-        raw_images = []
-        raw_gt_img = []
         annotations = json.load(open(self.annotation_file))
         
         for img_id in tqdm(annotations, total=len(annotations)):
             ann = annotations[img_id]
             for sample in ann:
                 input_img = f"{self.image_dir}/{img_id}/{sample['input']}"
-                raw_images.append(Image.open(input_img))
                 text = self.get_prompt(sample['instruction'])
                 texts.append(text)
                 gt_img = f"{self.image_dir}/{img_id}/{sample['output']}"
-                raw_gt_img.append(Image.open(gt_img))
-                pred_img = self.model.generate_image(text, input_img)
+                pred_img = model.generate_image(text, input_img)
                 predictions.append(pred_img)
                 ground_truth.append(gt_img)
-        
-        samples = len(raw_images)
-        self.save_details(raw_images[:samples], texts[:samples], raw_gt_img[:samples], "magic_brush.pkl")
 
         return predictions, ground_truth
     
-    def evaluate_dataset_batched(self):
+    def evaluate_dataset_batched(self, model=None, batch_size=None):
         pass
         

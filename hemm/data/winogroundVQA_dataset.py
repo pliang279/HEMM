@@ -9,24 +9,22 @@ from datasets import load_dataset
 
 from hemm.prompts.winoground_prompt import WinogroundPrompt
 from hemm.data.dataset import HEMMDatasetEvaluator
-from hemm.metrics.metric import HEMMMetric
-from hemm.metrics.bertscore_metric import BertScoreMetric
 
 class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset_dir='./',
-                 hf_auth_token="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",
-                 ):
+                download_dir="./",
+                dataset_dir=None,
+                annotation_file=None,
+                **kwargs,
+                ):
         super().__init__()
-        self.dataset_dir = dataset_dir
+        self.dataset_dir = download_dir
         self.prompt = WinogroundPrompt()
-        self.metrics = [BertScoreMetric()]
-        self.hf_auth_token = hf_auth_token
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.hf_auth_token = kwargs["hf_auth_token"]
         self.load()
     
     def load(self):
-        self.dataset = load_dataset("facebook/winoground", use_auth_token=self.hf_auth_token)['test']
+        self.dataset = load_dataset("facebook/winoground", use_auth_token=self.hf_auth_token, cache_dir=self.dataset_dir)['test']
 
     def __len__(self):
         return len(self.dataset)
@@ -38,13 +36,11 @@ class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.model = model
-        
         predictions = []
         ground_truth = []
-        # raw_images = []
         texts = []
         total_samples = 4 * len(self.dataset)
+        cnt = 0
         for data in tqdm(self.dataset, total=len(self.dataset)):
             for pair in ((0,0), (0,1), (1,0), (1,1)):
                 image = data['image_'+str(pair[0])]
@@ -57,17 +53,19 @@ class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
                     image.save(f)
                     image_path = "current_image.jpg"
                 texts.append(question)
-                # raw_images.append(Image.open(image_path))
-                output = self.model.generate(question, image_path)
-                predictions.append(output) 
-        
-        # print(len(raw_images))
-        # self.save_details(raw_images, texts, ground_truth, "winoground.pkl")
+                output = model.generate(question, image_path)
+                predictions.append(output)
+                cnt += 1
+                if cnt == 100:
+                    break
+
+            if cnt == 100:
+                break 
 
         return predictions, ground_truth
 
     def evaluate_dataset_batched(self,
-                         model,
+                         model=None,
                          batch_size=32
                          ):
         pass

@@ -9,36 +9,33 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.mmimdb_prompt import MMIMDBPrompt
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
+from huggingface_hub import snapshot_download
 
 class MMIMDBDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 image_dir='/work/agoindan/mmimdb/dataset',
-                 annotation_file="/work/agoindan/mmimdb/split.json",
-                 split="test",
-                 device="cpu",
-                 ):
+                download_dir="./",
+                dataset_dir='mmimdb/',
+                annotation_file="mmimdb/split.json",
+                **kwargs,
+                ):
         super().__init__()
-        self.image_dir = image_dir
-        self.device = device
+        self.download_dir = download_dir
+        self.kaggle_api_path = kwargs["kaggle_api_path"]
+        self.dataset_dir = os.path.join(download_dir, dataset_dir)
+        self.image_dir = os.path.join(self.dataset_dir, "images")
+        
         self.prompt = MMIMDBPrompt()
-        self.annotation_file = annotation_file
-        self.split = split
-        self.metrics = [BertScoreMetric(), BleuMetric()]
-
-    # def load(self):
-    #   os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
-    #   if not os.path.exists('landuse-scene-classification.zip'):
-    #       shell_command('kaggle datasets download -d apollo2506/landuse-scene-classification')
-    #   if not os.path.exists('ucmercedimages'):
-    #       shell_command('unzip landuse-scene-classification.zip -d ucmercedimages/')
+        self.annotation_file = os.path.join(download_dir, annotation_file)
+        self.load()
 
     def load(self):
-        pass
-
+        os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
+        if not os.path.exists(f"{self.download_dir}/mmimdb"):
+            shell_command(f"mkdir -p {self.download_dir}/mmimdb")
+            snapshot_download(repo_id="akshayg08/mmimdb_test", repo_type="dataset", local_dir=f"{self.download_dir}/mmimdb/")
+            
     def __len__(self):
-        ann_files = json.load(open(self.annotation_file))[self.split.strip()]
+        ann_files = json.load(open(self.annotation_file))["test"]
         return len(ann_files)
 
     def get_prompt(self, text):
@@ -47,22 +44,19 @@ class MMIMDBDatasetEvaluator(HEMMDatasetEvaluator):
 
     def evaluate_dataset(self,
                          model,
-                         ) -> None:
-        self.load()
-        self.model = model
-        
+                         ) -> None: 
         predictions = []
         ground_truth = []
 
-        ann_files = json.load(open(self.annotation_file))[self.split.strip()]
-    
+        ann_files = json.load(open(self.annotation_file))["test"]
+
         for row in tqdm(ann_files, total=len(ann_files)):
             ann_id = row.strip()
             image_path = f"{self.image_dir}/{ann_id}.jpeg"
-            data = json.load(open(f"{self.image_dir}/{ann_id}.json"))
+            data = json.load(open(f"{self.dataset_dir}/annotations/{ann_id}.json"))
             text = self.get_prompt(data["plot"][0])
             label = ", ".join(data["genres"])
-            output = self.model.generate(text, image_path)
+            output = model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(label)
         
@@ -72,38 +66,35 @@ class MMIMDBDatasetEvaluator(HEMMDatasetEvaluator):
                          model,
                          batch_size=32
                          ) -> None:
-        self.load()
         self.model = model
         
-        predictions = []
         ground_truth = []
 
         texts = []
         images = []
-        # raw_images = []
 
-        ann_files = json.load(open(self.annotation_file))[self.split.strip()]
+
+        all_results = []
+        ann_files = json.load(open(self.annotation_file))["test"]
         for row in tqdm(ann_files, total=len(ann_files)):
             ann_id = row.strip()
             image_path = f"{self.image_dir}/{ann_id}.jpeg"
             raw_image = Image.open(image_path).convert('RGB')
-            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
-            data = json.load(open(f"{self.image_dir}/{ann_id}.json"))
+            data = json.load(open(f"{self.dataset_dir}/annotations/{ann_id}.json"))
             text = self.get_prompt(data["plot"][0])
             label = ", ".join(data["genres"])
             texts.append(text)
-            ground_truth.append(label)
-        
-        samples = len(images)
-        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        # print(len(raw_images))
-        # samples = len(raw_images)
-        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "mmimdb.pkl")
+            ground_truth.append(label.strip())
 
-        # results = {}
-        # for metric in self.metrics:
-        #     results[metric.name] = metric.compute(ground_truth[:samples], predictions)
-        return predictions, ground_truth[:samples]
+            if len(images) % batch_size == 0:
+                all_results += self.predict_batched(images, texts, batch_size)
+                images = []
+                texts = []
+
+        if len(images) > 0:
+            all_results += self.predict_batched(images, texts, batch_size)
+
+        return all_results, ground_truth
         

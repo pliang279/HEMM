@@ -7,26 +7,28 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.plip_kather_prompt import PlipKatherPrompt
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
+from huggingface_hub import snapshot_download
 
 class PlipKatherDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 image_dir='/work/agoindan/CRC-VAL-HE-7K',
-                 annotation_file="/work/agoindan/External_validation_data/Kather_test/Kather_test.csv",
-                 device="cuda",
-                 ):
+                download_dir="./",
+                dataset_dir='open_path/',
+                annotation_file="open_path/Kather_test/Kather_test.csv",
+                **kwargs,
+                ):
         super().__init__()
-        self.image_dir = image_dir
-        self.device = device
+        self.download_dir = download_dir
+        self.load()
+        self.image_dir = os.path.join(download_dir, dataset_dir)
         self.prompt = PlipKatherPrompt()
-        self.metrics = [BertScoreMetric(), BleuMetric()]
-        with open(annotation_file) as f:
+        with open(os.path.join(download_dir, annotation_file)) as f:
             self.annotation = f.readlines()
         self.annotation = self.annotation[1:]
 
     def load(self):
-        pass
+        if not os.path.exists(f"{self.download_dir}/open_path"):
+            shell_command(f"mkdir -p {self.download_dir}/open_path")
+            snapshot_download(repo_id="akshayg08/OpenPath", repo_type="dataset", local_dir=f"{self.download_dir}/open_path/")
 
     def __len__(self):
         return len(self.annotation)
@@ -38,21 +40,17 @@ class PlipKatherDatasetEvaluator(HEMMDatasetEvaluator):
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load()
-        self.model = model
-        
         predictions = []
         ground_truth = []
-        cnt = 0
+
         for row in tqdm(self.annotation, total=len(self.annotation)):
             _, fn, lb, caption = row.strip().split(",")
             label = " ".join(caption.split()[5:])[:-1]
             image_path = f"{self.image_dir}/{lb}/{fn}"
             text = self.get_prompt()
-            output = self.model.generate(text, image_path)
+            output = model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(label)
-            cnt += 1
 
         return predictions, ground_truth
     
@@ -60,7 +58,7 @@ class PlipKatherDatasetEvaluator(HEMMDatasetEvaluator):
                          model,
                          batch_size=32
                          ) -> None:
-        self.load()
+
         self.model = model
         
         predictions = []
@@ -79,11 +77,6 @@ class PlipKatherDatasetEvaluator(HEMMDatasetEvaluator):
             text = self.get_prompt()
             texts.append(text)
             ground_truth.append(label)
-        
-        samples = len(images)
-        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        # samples = len(raw_images)
-        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "plip_kather.pkl")
 
-        return predictions, ground_truth[:samples]
-
+        predictions = self.predict_batched(images, texts, batch_size)
+        return predictions, ground_truth

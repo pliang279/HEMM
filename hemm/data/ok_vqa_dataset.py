@@ -9,18 +9,19 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.okqvqa_prompt import OKVQAPrompt
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
 
 class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 	def __init__(self,
-				dataset_dir='./',
+				download_dir="./",
+				dataset_dir='okvqa/',
+				annotation_file=None,
+				**kwargs,
 				):
 		super().__init__()
-		self.dataset_dir = dataset_dir
-		self.dataset_key = 'okvqa'
+		self.download_dir = download_dir
+		self.dataset_dir = os.path.join(download_dir, dataset_dir)
 		self.prompt = OKVQAPrompt()
-		self.metrics = [BertScoreMetric(), BleuMetric()]
+		self.load()
 
 	def __len__(self):
 		annotation_file = os.path.join(self.dataset_dir, 'mscoco_val2014_annotations.json')
@@ -28,18 +29,20 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 		return len(annotations["annotations"])
 
 	def load(self):
-		if not os.path.exists('val2014.zip'):
-			shell_command('wget http://images.cocodataset.org/zips/val2014.zip')
-		if not os.path.exists('mscoco_val2014_annotations.json.zip'):
-			shell_command('wget https://okvqa.allenai.org/static/data/mscoco_val2014_annotations.json.zip')
-		if not os.path.exists('OpenEnded_mscoco_val2014_questions.json.zip'):
-			shell_command('wget https://okvqa.allenai.org/static/data/OpenEnded_mscoco_val2014_questions.json.zip')
-		if not os.path.exists('mscoco_val2014_annotations.json'):
-			shell_command('unzip mscoco_val2014_annotations.json.zip -d ./')
-		if not os.path.exists('OpenEnded_mscoco_val2014_questions.json'):
-			shell_command('unzip OpenEnded_mscoco_val2014_questions.json.zip -d ./')
-		if not os.path.exists('val2014'):
-			shell_command('unzip val2014.zip -d ./')
+		if not os.path.exists(f"{self.download_dir}/okvqa"):
+			shell_command(f'mkdir -p {self.download_dir}/okvqa')
+		if not os.path.exists(f"{self.download_dir}/val2014.zip"):
+			shell_command(f'wget http://images.cocodataset.org/zips/val2014.zip -P {self.download_dir}/okvqa/')
+		if not os.path.exists(f'{self.download_dir}/okvqa/mscoco_val2014_annotations.json.zip'):
+			shell_command(f'wget https://okvqa.allenai.org/static/data/mscoco_val2014_annotations.json.zip -P {self.download_dir}/okvqa/')
+		if not os.path.exists(f'{self.download_dir}/okvqa/OpenEnded_mscoco_val2014_questions.json.zip'):
+			shell_command(f'wget https://okvqa.allenai.org/static/data/OpenEnded_mscoco_val2014_questions.json.zip -P {self.download_dir}/okvqa/')
+		if not os.path.exists(f'{self.download_dir}/okvqa/mscoco_val2014_annotations.json'):
+			shell_command(f'unzip {self.download_dir}/mscoco_val2014_annotations.json.zip -d {self.download_dir}/okvqa/')
+		if not os.path.exists(f'{self.download_dir}/okvqa/OpenEnded_mscoco_val2014_questions.json'):
+			shell_command(f'unzip {self.download_dir}/OpenEnded_mscoco_val2014_questions.json.zip -d {self.download_dir}/okvqa')
+		if not os.path.exists(f'{self.download_dir}/okvqa/val2014'):
+			shell_command(f'unzip {self.download_dir}/val2014.zip -d {self.download_dir}/okvqa/')
 
 	def get_prompt(self, question):
 		return self.prompt.format_prompt(question)
@@ -47,9 +50,6 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 	def evaluate_dataset(self,
 						model,
 						) -> None:
-		self.load()
-		self.model = model
-
 		image_dir = os.path.join(self.dataset_dir, 'val2014')        
 		annotation_file = os.path.join(self.dataset_dir, 'mscoco_val2014_annotations.json')
 		question_file = os.path.join(self.dataset_dir, 'OpenEnded_mscoco_val2014_questions.json')
@@ -66,6 +66,9 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 		ground_truth = []
 
 		for ann in annotations["annotations"]:
+			image_path = os.path.join(image_dir, f"COCO_val2014_000000{ann['image_id']}.jpg")
+			if not os.path.exists(image_path):
+				continue
 			images.append(ann["image_id"])
 			qs.append(qid_to_q[ann["question_id"]])
 			ground_truth.append(ann)
@@ -77,20 +80,24 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 			if not os.path.exists(image_path):
 				continue
 			text = self.get_prompt(qs[i])
-			output = self.model.generate(text, image_path)
-			ground_truth_answer = ground_truth[i]['answers'][0]['raw_answer']
-			ground_truth_list.append(ground_truth_answer)
+			output = model.generate(text, image_path)
 			predictions.append(output)
 
-		return predictions, ground_truth
+			ground_truth_answer = ground_truth[i]['answers']
+			multiple_gts = []
+			for gt_ans in ground_truth_answer:
+				multiple_gts.append(gt_ans["answer"])
+			
+			multiple_gts = list(set(multiple_gts))
+			ground_truth_list.append(multiple_gts)
+
+		return predictions, ground_truth_list
 	
 	def evaluate_dataset_batched(self,
 								model,
 								batch_size=32
 								):
-		self.load()
 		self.model = model
-
 		image_dir = os.path.join(self.dataset_dir, 'val2014')        
 		annotation_file = os.path.join(self.dataset_dir, 'mscoco_val2014_annotations.json')
 		question_file = os.path.join(self.dataset_dir, 'OpenEnded_mscoco_val2014_questions.json')
@@ -100,13 +107,16 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 
 		qid_to_q = {}
 		for ques in questions["questions"]:
-				qid_to_q[ques["question_id"]] = ques["question"]
+			qid_to_q[ques["question_id"]] = ques["question"]
 		
 		image_ids = []
 		qs = []
 		ground_truth = []
 
 		for ann in annotations["annotations"]:
+			image_path = os.path.join(image_dir, f"COCO_val2014_000000{ann['image_id']}.jpg")
+			if not os.path.exists(image_path):
+				continue
 			image_ids.append(ann["image_id"])
 			qs.append(qid_to_q[ann["question_id"]])
 			ground_truth.append(ann)
@@ -115,28 +125,28 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 		ground_truth_list = []
 		texts = []
 		images = []
-		# raw_images = []
+		raw_images = []
 
 		for i in tqdm(range(len(image_ids)), total=len(image_ids)):
 			image_path = os.path.join(image_dir, f"COCO_val2014_000000{image_ids[i]}.jpg")
 			if not os.path.exists(image_path):
 				continue
 			raw_image = Image.open(image_path).convert('RGB')
-			# raw_images.append(raw_image)
-			image = self.model.get_image_tensor(raw_image)
+			raw_images.append(raw_image)
+			image = model.get_image_tensor(raw_image)
 			images.append(image)
 
 			text = self.get_prompt(qs[i])
 			texts.append(text)
 
-			ground_truth_answer = ground_truth[i]['answers'][0]['raw_answer']
-			ground_truth_list.append(ground_truth_answer)
+			ground_truth_answer = ground_truth[i]['answers']
+			multiple_gts = []
+			for gt_ans in ground_truth_answer:
+				multiple_gts.append(gt_ans["answer"])
+			multiple_gts = list(set(multiple_gts))
+			ground_truth_list.append(multiple_gts)
 
-		samples = len(images)
-		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-		# print(len(raw_images))
-		# samples = len(raw_images)
-		# self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "okvqa.pkl")
+		predictions = self.predict_batched(images, texts, batch_size)
 
-		return predictions, ground_truth_list[:samples]
+		return predictions, ground_truth_list
 	

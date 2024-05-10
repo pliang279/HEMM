@@ -11,18 +11,14 @@ from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.vcr_prompt import VCRPrompt
 from hemm.utils.common_utils import shell_command
 from ast import literal_eval
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
 
 class VCRDatasetEvaluator(HEMMDatasetEvaluator):
-	def __init__(self,
-				):
+	def __init__(self, download_dir="./", dataset_dir='vcr1images/', annotation_file='vcr_annotations/val.jsonl', **kwargs):
 		super().__init__()
-		self.annotation_file = 'vcr_annotations/val.jsonl'
-		self.image_dir = './vcr1images/'
+		self.download_dir = download_dir
+		self.annotation_file = os.path.join(download_dir, annotation_file)
+		self.image_dir = os.path.join(download_dir, dataset_dir)
 		self.prompt = VCRPrompt()
-		self.dataset_key = 'vcr'
-		self.metrics = [BertScoreMetric(), BleuMetric()]
 		self.load()
 
 	def __len__(self):
@@ -32,14 +28,14 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		return len(self.annotations)
 
 	def load(self):
-		if not os.path.exists('vcr1images.zip'):
-			shell_command('wget https://s3.us-west-2.amazonaws.com/ai2-rowanz/vcr1images.zip')
-		if not os.path.exists('vcr1annots.zip'):
-			shell_command('wget https://s3.us-west-2.amazonaws.com/ai2-rowanz/vcr1annots.zip')
-		if not os.path.exists('vcr_annotations'):
-			shell_command('unzip vcr1annots.zip -d vcr_annotations')
-		if not os.path.exists('vcr1images'):
-			shell_command('unzip vcr1images.zip -d vcr1images')
+		if not os.path.exists(f'{self.download_dir}/vcr1images.zip'):
+			shell_command(f'wget https://s3.us-west-2.amazonaws.com/ai2-rowanz/vcr1images.zip -P {self.download_dir}')
+		if not os.path.exists(f'{self.download_dir}/vcr1annots.zip'):
+			shell_command(f'wget https://s3.us-west-2.amazonaws.com/ai2-rowanz/vcr1annots.zip -P {self.download_dir}')
+		if not os.path.exists(f'{self.download_dir}/vcr_annotations'):
+			shell_command(f'unzip {self.download_dir}/vcr1annots.zip -d {self.download_dir}/vcr_annotations')
+		if not os.path.exists(f'{self.download_dir}/vcr1images'):
+			shell_command(f'unzip {self.download_dir}vcr1images.zip -d {self.download_dir}/vcr1images')
 
 	def get_prompt(self, question, answer_choices, rationale_choices=None, answer_label=None):
 		prompt = self.prompt.format_prompt(question, answer_choices, rationale_choices, answer_label)
@@ -87,8 +83,6 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 	def evaluate_dataset(self,
 						 model,
 						 ) -> None:
-		# self.load()
-		self.model = model
 
 		with open(self.annotation_file) as f:
 			self.annotations = f.readlines()
@@ -120,14 +114,13 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			self.draw_bounding_boxes(img, boxes, names)
 			self.draw_segments(img, segments)
 
-			image_path = './current_image.jpg'
 			img = Image.fromarray(img)
-			img = img.save(image_path)
-			output = self.model.generate(prompt, image_path)
+			output = model.generate(prompt, img)
 			outputs.append(output)
-			# answer = self.model.answer_extractor(output, self.dataset_key)
 			ground_truth.append(new_answer_choices[ann["answer_label"]])
 			predictions.append(output)
+			if i == 100:
+				break
 			
 		return outputs, ground_truth
 
@@ -135,17 +128,18 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 						 model,
 						 batch_size = 32
 						 ):
-		self.load()
 		self.model = model
 
 		texts = []
 		images = []
-		# raw_images = []
+		raw_images = []
+		all_preds = []
 
 		with open(self.annotation_file) as f:
 			self.annotations = f.readlines()
 
 		ground_truth = []
+		cnt = 0
 		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
 			ann = literal_eval(self.annotations[i])
 			question = self.fix_tokenization(ann["question"], ann["objects"])
@@ -172,26 +166,24 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			self.draw_bounding_boxes(img, boxes, names)
 			self.draw_segments(img, segments)
 
-			image_path = './current_image.jpg'
 			img = Image.fromarray(img)
-			img = img.save(image_path)
-			raw_image = Image.open(image_path).convert('RGB')
-
-			image = self.model.get_image_tensor(raw_image)
+			image = self.model.get_image_tensor(img)
 			images.append(image)
-			# print(prompt)
 			texts.append(prompt)
 			ground_truth.append(new_answer_choices[ann["answer_label"]])
+
+			if len(images) % batch_size == 0:
+				predictions = self.predict_batched(images, texts, batch_size)
+				all_preds += predictions 
+				images = []
+				texts = []
 			
-		# images_tensor = torch.cat(images, dim=0)
-		# images_tensor = images_tensor.to(self.model.device)
-		# predictions = self.model.generate_batch(images_tensor, texts, batch_size)
+			if i == 100:
+				break
 
-		samples = len(images)
-		predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-		# print(len(raw_images))
-		# samples = len(raw_images)
-		# self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "vcr.pkl")
+		if len(images) > 0:
+			predictions = self.predict_batched(images, texts, batch_size)
+			all_preds += predictions
 
-		return predictions, ground_truth[:samples]
+		return all_preds, ground_truth
 	
