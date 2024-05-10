@@ -11,26 +11,29 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.newyorkercartoon_prompt import NewYorkerCartoonPrompt
 from hemm.utils.common_utils import shell_command
-from hemm.metrics.accuracy_metric import * 
 
 class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 dataset_dir = './caption-contest-data/',
-                 ):
+                download_dir="./",
+                dataset_dir='caption-contest-data/',
+                annotation_file=None,
+                **kwargs, 
+                ):
         super().__init__()
-        self.dataset_key = 'newyorkercartoon'
-        self.dataset_dir = dataset_dir
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.download_dir = download_dir
+        self.dataset_dir = os.path.join(download_dir, dataset_dir)
         self.prompt = NewYorkerCartoonPrompt()
 
         self.image_dir = os.path.join(self.dataset_dir, 'cartoons')
         self.caption_dir = os.path.join(self.dataset_dir, 'summaries')
         self.csv_path_suffix_1 = 'LilUCB'
         self.csv_path_suffix_2 = 'lil-KLUCB'
-        self.metrics = [AccuracyMetric(), PrecisionMetric(), RecallMetric(), F1ScoreMetric()]
+
+        self.load()
 
     def load(self):
-        shell_command('git clone https://github.com/nextml/caption-contest-data')
+        if not os.path.exists(f"{self.download_dir}/caption-contest-data"):
+            shell_command(f'git clone https://github.com/nextml/caption-contest-data {os.path.join(self.download_dir, "caption-contest-data")}')
 
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)
@@ -42,9 +45,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load()
-        self.model = model
-        predictions = []
+        
         ground_truth = []
         outputs = []
         for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
@@ -60,39 +61,32 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
             captions = []
             captions.append(df.iloc[0]['caption'])
 
-            for i in range(1,5):
+            for i in range(1, 5):
                 captions.append(df.iloc[-1*i]['caption'])
             
             for i in range(len(captions)):
                 text = self.get_prompt(captions[i])
-                output = self.model.generate(text, img_path)
+                output = model.generate(text, img_path)
                 outputs.append(output)
-                answer = self.model.answer_extractor(output, self.dataset_key)
 
                 if i == 0:
-                    ground_truth.append(1)
+                    ground_truth.append("yes")
                 else:
-                    ground_truth.append(0)
-
-                if answer == 'yes':
-                    predictions.append(1)
-                else:
-                    predictions.append(0)
+                    ground_truth.append("no")
         
         return outputs, ground_truth
     
     def evaluate_dataset_batched(self,
                                 model,
-                                batch_size = 32
+                                batch_size=32
                                 ):
-        self.load()
+        
         self.model = model
         texts = []
         images = []
         ground_truth_list = []
         predictions = []
-        # raw_images = []
-        print(len(os.listdir(self.image_dir)))
+
         for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
             img_id = img.split('.jpg')[0]
             img_path = os.path.join(self.image_dir, img)
@@ -106,38 +100,20 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
             captions = []
             captions.append(df.iloc[0]['caption'])
 
-            for i in range(1,5):
+            for i in range(1, 5):
                 captions.append(df.iloc[-1*i]['caption'])
             
             for i in range(len(captions)):
                 text = self.get_prompt(captions[i])
                 texts.append(text)
                 raw_image = Image.open(img_path).convert('RGB')
-                # raw_images.append(raw_image)
                 image = self.model.get_image_tensor(raw_image)
                 images.append(image)
                 if i == 0:
-                    ground_truth_list.append(1)
+                    ground_truth_list.append("yes")
                 else:
-                    ground_truth_list.append(0)
+                    ground_truth_list.append("no")
         
-        # print(len(images))
-        # import pickle 
-        # pickle.dump(images, open("./temp.pkl", "wb"))
-        # print(type(images))
-        # images_tensor = torch.cat(images, dim=0)
-        # images_tensor = images_tensor.to(self.model.device)
-        # outputs = self.model.generate_batch(images_tensor, texts, batch_size)
-        samples = len(images)
-        outputs = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        # print(len(raw_images))
-        # samples = len(raw_images)
-        # self.save_details(raw_images[:samples], texts[:samples], ground_truth_list[:samples], "newyorkercartoon.pkl")
+        outputs = self.predict_batched(images, texts, batch_size)
+        return outputs, ground_truth_list    
 
-        for answer in outputs:
-            if answer == 'yes':
-                predictions.append(1)
-            else:
-                predictions.append(0)
-        
-        return outputs, ground_truth_list[:samples]    

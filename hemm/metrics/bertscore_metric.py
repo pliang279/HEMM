@@ -4,8 +4,8 @@ import evaluate
 
 class BertScoreMetric(HEMMMetric):
     def compute(self, 
-                       ground_truth, 
-                       predictions):
+                       predictions, 
+                       ground_truth):
         self.name = "Bert Score"
         bertscore = evaluate.load('bertscore')
         # results = bertscore.compute(predictions=predictions, references=ground_truth, lang='en')

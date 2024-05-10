@@ -10,30 +10,27 @@ from tqdm import tqdm
 import pickle
 
 from hemm.data.dataset import HEMMDatasetEvaluator
-from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.pathvqa_prompt import PathVQAPrompt
 from hemm.utils.common_utils import shell_command
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
 
 class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
-    def __init__(self,
-                 ):
+    def __init__(self, download_dir="./", dataset_dir=None, annotation_file=None, **kwargs):
+        self.download_dir = download_dir
+        self.load()
         self.prompt = PathVQAPrompt()
-        self.metrics = [BertScoreMetric(), BleuMetric()]
 
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)
         return prompt_text
 
     def load(self):
-        if not os.path.exists('Backup'):
-            shell_command('gdown --no-check-certificate --folder https://drive.google.com/drive/folders/1G2C2_FUCyYQKCkSeCRRiTTsLDvOAjFj5')
-        if not os.path.exists('pathvqa_images'):
-            shell_command('unzip Backup/pvqa.zip -d pathvqa_images/')
+        if not os.path.exists(f'{self.download_dir}/Backup'):
+            shell_command(f'gdown --no-check-certificate --folder https://drive.google.com/drive/folders/1G2C2_FUCyYQKCkSeCRRiTTsLDvOAjFj5 -O {self.download_dir}')
+        if not os.path.exists(f'{self.download_dir}/pathvqa_images'):
+            shell_command(f'unzip {self.download_dir}/Backup/pvqa.zip -d {self.download_dir}/pathvqa_images/')
     
     def __len__(self):
-        annotation_path = os.path.join('pathvqa_images','pvqa','qas','test','test_qa.pkl')
+        annotation_path = os.path.join(self.download_dir, 'pathvqa_images','pvqa','qas','test','test_qa.pkl')
         annotation_file = pickle.load(open(annotation_path, 'rb'))
 
         return len(annotation_file)
@@ -41,11 +38,8 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load()
-        self.model = model
-        
-        images_dir = os.path.join('pathvqa_images','pvqa','images','test')
-        annotation_path = os.path.join('pathvqa_images','pvqa','qas','test','test_qa.pkl')
+        images_dir = os.path.join(self.download_dir, 'pathvqa_images','pvqa','images','test')
+        annotation_path = os.path.join(self.download_dir, 'pathvqa_images','pvqa','qas','test','test_qa.pkl')
         annotation_file = pickle.load(open(annotation_path, 'rb'))
         
         ground_truth = []
@@ -55,26 +49,24 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
             question = data_dict['question']
             ground_truth_answer = data_dict["answer"]
             text = self.get_prompt(question)
-            output = self.model.generate(text, image_path)
+            output = model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
         
-        return predictions,ground_truth
+        return predictions, ground_truth
 
     def evaluate_dataset_batched(self,
                          model,
                          batch_size=32
                          ):
-        self.load()
         self.model = model
         
-        images_dir = os.path.join('pathvqa_images','pvqa','images','test')
-        annotation_path = os.path.join('pathvqa_images','pvqa','qas','test','test_qa.pkl')
+        images_dir = os.path.join(self.download_dir, 'pathvqa_images','pvqa','images','test')
+        annotation_path = os.path.join(self.download_dir, 'pathvqa_images','pvqa','qas','test','test_qa.pkl')
         annotation_file = pickle.load(open(annotation_path, 'rb'))
         
         texts = []
         images = []
-        # raw_images = []
 
         ground_truth = []
         predictions = []
@@ -91,9 +83,6 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
             ground_truth.append(ground_truth_answer)
         
         samples = len(images)
-        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        # print(len(raw_images))
-        # samples = len(raw_images)
-        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "pathvqa.pkl")
+        predictions = self.predict_batched(images, texts, batch_size)
         
-        return predictions, ground_truth[:samples]
+        return predictions, ground_truth

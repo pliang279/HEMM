@@ -41,6 +41,7 @@ class HEMMDatasetEvaluator(abc.ABC):
 		"""
 		make predictions for batched inference
 		"""
+		assert len(images) == len(texts)
 		if isinstance(images[0], Image.Image):
 			predictions = self.model.generate_batch(images, texts, batch_size)
 		else:
@@ -51,6 +52,7 @@ class HEMMDatasetEvaluator(abc.ABC):
 		return predictions
 	
 	def save_details(self, images, texts, gts, name):
+		"""Saving Images and Prompts as a pickle file"""
 		assert len(images) == len(texts) == len(gts)
 		details = {
 			"images":images,
@@ -58,15 +60,7 @@ class HEMMDatasetEvaluator(abc.ABC):
 			"gts": gts
 		}
 		pickle.dump(details, open(name, "wb"))
-
 		return
-
-	def run_metrics(self, ground_truth, predictions):
-		results = {}
-		for metric in self.metrics:
-			results[metric.name] = metric.compute(ground_truth, predictions)
-			
-		return results
 
 	@abc.abstractmethod
 	def evaluate_dataset_batched(self):

@@ -9,29 +9,31 @@ import pandas as pd
 import random 
 
 from hemm.data.dataset import HEMMDatasetEvaluator
-from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.memotion_prompt import MemotionPrompt
 from hemm.utils.common_utils import shell_command
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+def ref_text(text):
+    sents = text.split("\n")
+    sents = [sent.strip() for sent in sents]
+    return " ".join(sents).strip()
+
 class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 data_path = 'memotion-dataset-7k/memotion_dataset_7k/labels.xlsx',
-                 image_dir = 'memotion-dataset-7k/memotion_dataset_7k/images',
-                 kaggle_api_path = None
-                 ):
+                download_dir="./",
+                dataset_dir=None,
+                annotation_file=None,
+                **kwargs,
+                ):
         super().__init__()
-        self.dataset_key = 'memotion'
-        self.data_path = data_path
-        self.image_dir = image_dir
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.kaggle_api_path = kaggle_api_path
+        self.download_dir = download_dir
+        self.data_path = os.path.join(download_dir, 'memotion-dataset-7k/memotion_dataset_7k/labels.xlsx')
+        self.image_dir = os.path.join(download_dir, 'memotion-dataset-7k/memotion_dataset_7k/images')
+        self.kaggle_api_path = kwargs["kaggle_api_path"]
         self.prompt = MemotionPrompt()
         self.choices = ['funny', 'very_funny', 'not_funny', 'hilarious']
-        self.metrics = [BertScoreMetric(), BleuMetric()]
+        self.load()
 
     def __len__(self):
         df = pd.read_excel(self.data_path)
@@ -41,18 +43,16 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
         prompt_text = self.prompt.format_prompt(caption)
         return prompt_text
 
-    def load(self, kaggle_api_path):
-        os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
-        if not os.path.exists('memotion-dataset-7k.zip'):
-          shell_command('kaggle datasets download -d williamscott701/memotion-dataset-7k')
-        if not os.path.exists('memotion-dataset-7k'):
-          shell_command('unzip memotion-dataset-7k.zip -d memotion-dataset-7k')
+    def load(self):
+        os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
+        if not os.path.exists(f'{self.download_dir}/memotion-dataset-7k.zip'):
+          shell_command(f'kaggle datasets download -d williamscott701/memotion-dataset-7k -p {self.download_dir}')
+        if not os.path.exists(f'{self.download_dir}/memotion-dataset-7k'):
+          shell_command(f'unzip {self.download_dir}/memotion-dataset-7k.zip -d {self.download_dir}/memotion-dataset-7k')
 
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load(self.kaggle_api_path)
-        self.model = model
         df = pd.read_excel(self.data_path)
         predictions = []
         ground_truth = []
@@ -62,7 +62,7 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             gt_label = row['humour']
             ground_truth.append(gt_label)
             text = self.get_prompt(caption)
-            output = self.model.generate(text, image_path)
+            output = model.generate(text, image_path)
             predictions.append(output)
 
         return predictions, ground_truth
@@ -71,7 +71,6 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
                          model,
                          batch_size=32
                          ):
-        self.load(self.kaggle_api_path)
         self.model = model
         df = pd.read_excel(self.data_path)
         ground_truth = []
@@ -92,10 +91,6 @@ class MemotionDatasetEvaluator(HEMMDatasetEvaluator):
             text = self.get_prompt(caption)
             texts.append(text)
 
-        samples = len(images)
-        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        # print(len(raw_images))
-        # samples = len(raw_images)
-        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "memotion.pkl")
-        return predictions, ground_truth[:samples]
+        predictions = self.predict_batched(images, texts, batch_size)
+        return predictions, ground_truth
     

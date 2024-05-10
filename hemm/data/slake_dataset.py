@@ -8,28 +8,31 @@ import json
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.slake_prompt import SlakePrompt
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
 
 class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 image_dir='/work/agoindan/Slake1.0/imgs',
-                 annotation_file="/work/agoindan/Slake1.0/test.json",
-                 device="cpu",
-                 ):
+                download_dir="./",
+                dataset_dir='Slake1.0/imgs',
+                annotation_file="Slake1.0/test.json",
+                **kwargs,
+                ):
         super().__init__()
-        self.image_dir = image_dir
-        self.device = device
+        self.download_dir = download_dir
+        self.load()
+        self.image_dir = os.path.join(download_dir, dataset_dir)
         self.prompt = SlakePrompt()
-        self.metrics = [BertScoreMetric(), BleuMetric()]
-        all_annotation = json.load(open(annotation_file))
+        all_annotation = json.load(open(os.path.join(download_dir, annotation_file)))
         self.annotation = []
         for ann in all_annotation:
             if ann["q_lang"] == "en" and ann["answer_type"] == "CLOSED":
                 self.annotation.append(ann)
 
     def load(self):
-        pass
+        if not os.path.exists("Slake1.0"):
+            shell_command(f"mkdir -p {self.download_dir}/Slake1.0")
+            shell_command(f"wget https://huggingface.co/datasets/BoKelvin/SLAKE/raw/main/test.json -P {self.download_dir}/Slake1.0/")
+            shell_command(f"wget https://huggingface.co/datasets/BoKelvin/SLAKE/resolve/main/imgs.zip -P {self.download_dir}/Slake1.0/")
+            shell_command(f"unzip {self.download_dir}/Slake1.0/imgs.zip -d {self.download_dir}/Slake1.0/")
 
     def __len__(self):
         return len(self.annotation)
@@ -41,9 +44,7 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load()
-        self.model = model
-        
+  
         predictions = []
         ground_truth = []
 
@@ -52,7 +53,7 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
             question = row["question"]
             image_path = f"{self.image_dir}/{row['img_name']}"
             text = self.get_prompt(question)
-            output = self.model.generate(text, image_path)
+            output = model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(label)
 
@@ -62,7 +63,6 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
                          model,
                          batch_size=32
                          ) -> None:
-        self.load()
         self.model = model
         
         predictions = []
@@ -70,24 +70,17 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
 
         texts = []
         images = []
-        # raw_images = []
 
         for row in tqdm(self.annotation, total=len(self.annotation)):
             label = row["answer"]
             question = row["question"]
             image_path = f"{self.image_dir}/{row['img_name']}"
             raw_image = Image.open(image_path).convert('RGB')
-            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
             text = self.get_prompt(question)
             texts.append(text)
             ground_truth.append(label)
         
-        samples = len(images) // 10
-        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
-        # print(len(raw_images))
-        # samples = len(raw_images)
-        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "slake.pkl")
-
-        return predictions, ground_truth[:samples]
+        predictions = self.predict_batched(images, texts, batch_size)
+        return predictions, ground_truth

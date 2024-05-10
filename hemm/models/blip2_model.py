@@ -43,7 +43,7 @@ class BLIP2(HEMMModel):
 				return None
 	
 	def get_image_tensor(self, image):
-		img = self.processor["eval"](image).unsqueeze(0).to(self.device)
+		img = self.processor["eval"](image).unsqueeze(0)
 		return img
 
 	def generate_batch(self, 
@@ -53,7 +53,7 @@ class BLIP2(HEMMModel):
 					   ):
 		answers = []
 		for i in tqdm(range(0, len(texts), batch_size)):
-			img_batch = images[i : i + batch_size]
+			img_batch = images[i : i + batch_size].to(self.device)
 			text_batch = texts[i : i + batch_size]
 			generated_text = self.model.generate({"image":img_batch, "prompt":text_batch})
 			answers += generated_text

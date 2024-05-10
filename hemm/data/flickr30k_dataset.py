@@ -1,90 +1,85 @@
 import os
-import cv2
 import json
-from typing import Optional, Union, List
 from PIL import Image
+import requests
 import torch
-from torch.utils.data import Dataset, DataLoader
+import subprocess
+from tqdm import tqdm
+import pandas as pd
+import random 
 
 from hemm.data.dataset import HEMMDatasetEvaluator
-from hemm.metrics.metric import HEMMMetric
-from hemm.prompts.face_emotion_prompt import FaceEmotionPrompt
+from hemm.prompts.flickr30k_prompt import Flickr30kPrompt
 from hemm.utils.common_utils import shell_command
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
 
-class Flickr30k(Dataset):
+class Flickr30kDatasetEvaluator(HEMMDatasetEvaluator):
 	def __init__(self,
-				 image_dir,
-				 annotation_file,
-				 device,
+				download_dir="./",
+				dataset_dir="flickr30k_images/flickr30k_images/",
+				annotation_file="flickr30k_images/flickr30k_test.json",
+				**kwargs,
 				 ):
-		self.image_dir = image_dir
+		super().__init__()
+		self.download_dir = download_dir
+		self.kaggle_api_path = kwargs["kaggle_api_path"]
+		self.load()
+		self.image_dir = os.path.join(self.download_dir, dataset_dir)
+		annotation_file = os.path.join(self.download_dir, annotation_file)
 		self.annotation = json.load(open(annotation_file, "r"))
-		self.device = device
+		self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+		self.prompt = Flickr30kPrompt()
 
-		self.text = []
-		self.image = []
-		self.txt2img = {}
-		self.img2txt = {}
-		self.img_txt = []
+	def get_prompt(self) -> str:
+		prompt_text = self.prompt.format_prompt()
+		return prompt_text
+	
+	def __len__(self,):
+		return len(self.annotation)
 
-		txt_id = 0
-		for img_id, ann in enumerate(self.annotation):
-			self.image.append(ann['image'])
-			self.img2txt[img_id] = []
-			for i, caption in enumerate(ann['caption']):
-				self.text.append(caption)
-				self.img2txt[img_id].append(txt_id)
-				self.txt2img[txt_id] = img_id
-				self.img_txt.append({"image": ann["image"], "caption": caption})
-				txt_id += 1
+	def load(self):
+		os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
+		if not os.path.exists(f'{self.download_dir}/flickr-image-dataset.zip'):
+			shell_command(f'kaggle datasets download -d hsankesara/flickr-image-dataset -p {self.download_dir}')
+		if not os.path.exists(f'{self.download_dir}/flickr30k_images'):
+			shell_command(f'unzip {self.download_dir}/flickr-image-dataset.zip -d {self.download_dir}')
+			shell_command(f"wget https://huggingface.co/datasets/akshayg08/Flickr30k_test/raw/main/flickr30k_test.json -P {self.download_dir}/flickr30k_images/")
 
-	def __getitem__(self, index):
-		img_text_pair = self.img_txt[index]
-		img_name = f"{image_dir}/{img_text_pair["image"]}"
+	def evaluate_dataset(self,
+						 model,
+						 ):
+		predictions = []
+		ground_truth = []
 
-		caption = img_text_pair["caption"]
-		prompt = f"Question: Is the following caption suitable for the given image, Answer yes or no, Caption: {caption}"
+		for i, ann in tqdm(enumerate(self.annotation), total=len(self.annotation)):
+			image_path = f"{self.image_dir}/{ann['image'].split('/')[-1]}"
+			ground_truth.append(ann["caption"][0])
+			text = self.get_prompt()
+			output = model.generate(text, image_path)
+			predictions.append(output)
 
-		img = Image.open(img_name)
+		return predictions, ground_truth
 
-		return {
-			"image": img, 
-			"prompt": prompt,
-			"gt": "yes"
-		}
+	def evaluate_dataset_batched(self,
+						 model,
+						 batch_size=32
+						 ):
+		self.model = model
+		
+		ground_truth = []
+		images = []
+		texts = []
 
-	def __len__(self):
-		return len(self.img_txt)
+		for i, ann in tqdm(enumerate(self.annotation), total=len(self.annotation)):
+			image_path = f"{self.image_dir}/{ann['image'].split('/')[-1]}"
+			
+			raw_image = Image.open(image_path).convert('RGB')
+			image = self.model.get_image_tensor(raw_image)
+			images.append(image)
+			ground_truth.append(ann["caption"])
 
-# class Flickr30kEvaluator(HEMMDatasetEvaluator, EvaluatorMixin):
-# 	def __init__(self,
-# 				 dataset_dir,
-# 				 model,
-# 				 evaluate_path,
-# 				 device,
-# 				 batch_size,
-# 				 shuffle_dataset,
-# 				 output_file_path
-# 				 ):
-# 		super().__init__(dataset_dir)
-# 		self.dataset_dir = dataset_dir
-# 		self.model = model
-# 		self.evaluate_path = evaluate_path
-# 		self.device = device
-# 		self.batch_size = batch_size
-# 		self.shuffle_dataset = shuffle_dataset
-# 		self.output_file_path = output_file_path
+			text = self.get_prompt()
+			texts.append(text)
 
-# 	def evaluate_dataset(self,
-# 						 metrics: List[HEMMMetric],
-# 						 ) -> None:
-
-# 		image_dir = os.path.join(self.dataset_dir, 'val2014')        
-# 		annotation_file = os.path.join(self.dataset_dir, 'mscoco_val2014_annotations.json')
-# 		question_file = os.path.join(self.dataset_dir, 'OpenEnded_mscoco_val2014_questions.json')
-
-# 		pt_dataset = OKVQA(image_dir, annotation_file, question_file, self.device)
-# 		loader = DataLoader(pt_dataset, batch_size=self.batch_size, shuffle=self.shuffle_dataset)
-# 		self.evaluate(self.model, loader, self.output_file_path, modalities=['img','text'])
+		predictions = self.predict_batched(images, texts, batch_size)
+		return predictions, ground_truth
+	

@@ -12,20 +12,18 @@ from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.irfl_prompt import IRFLPrompt
 from hemm.utils.common_utils import shell_command
-from hemm.metrics.accuracy_metric import *
 
 class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
-    def __init__(self,
-                 csv_path = 'IRFL/assets/tasks/simile_understanding_task.csv',
-                 ):
+    def __init__(self, download_dir="./", dataset_dir=None, annotation_file=None, **kwargs):
         super().__init__()
-        self.dataset_key = 'irfl'
-        self.csv_path = csv_path
+        self.download_dir = download_dir
         self.prompt = IRFLPrompt()
-        self.metrics = [AccuracyMetric(), PrecisionMetric(), RecallMetric(), F1ScoreMetric()]
+        self.load()
 
     def load(self):
-        shell_command('git clone https://github.com/irfl-dataset/IRFL')
+        self.IRFL_images = load_dataset("lampent/IRFL", data_files='IRFL_images.zip', cache_dir=self.download_dir)['train']
+        self.dataset = load_dataset("lampent/IRFL", "simile-detection-task", cache_dir=self.download_dir)["test"]
+        self.dataset = pd.DataFrame(self.dataset)
 
     def get_prompt(self, text) -> str:
         prompt_text = self.prompt.format_prompt(text)
@@ -35,57 +33,34 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
                          model,
                          ) -> None:
 
-        self.load()
         self.model = model
-        df = pd.read_csv(self.csv_path)
         predictions = []
         outputs = []
         ground_truth = []
-        # raw_images = []
         texts = []
-        for index, row in tqdm(df.iterrows(), total=len(df)):
-            try:
-                phrase = row['phrase']
-                distractors = ast.literal_eval(row['distractors'])
-                question = self.get_prompt(phrase)
-                answer_image = ast.literal_eval(row['answer'])[0]
-                distractors.append(answer_image)
-                
-                for distractor in distractors:
-                    response = requests.get(distractor)
-                    if response.status_code == 200:
-                        with open("current_image.jpg", 'wb') as f:
-                            f.write(response.content)
-                    image_path = "current_image.jpg"
-                    # raw_images.append(Image.open(image_path).convert("RGB"))
-                    texts.append(question)
-                    answer = self.model.generate(question, image_path)
-                    outputs.append(answer)
-                    # answer = self.model.answer_extractor(answer, self.dataset_key)
-                    # generated_answers.append(answer)
+        for index, row in tqdm(self.dataset.iterrows(), total=len(self.dataset)):
+            phrase = row['phrase']
+            distractors = ast.literal_eval(row['distractors'])
+            question = self.get_prompt(phrase)
+            answer_image = ast.literal_eval(row['answer'])[0]
+            distractors.append(answer_image)
+            
+            for distractor in distractors:
+                image_path = self.get_image_path_from_hugginface_cache(distractor)
+                texts.append(question)
+                answer = self.model.generate(question, image_path)
+                outputs.append(answer)
 
-                ground_truth += [0, 0, 0, 1]
-                
-                # if generated_answers[-1] == 'yes':
-                #     if generated_answers[0] == 'no' and generated_answers[1] == 'no' and generated_answers[2] == 'no':
-                #         predictions.append(1)
-                #     else:
-                #         predictions.append(0)
-                # else:
-                #     predictions.append(0)
-                
-                # ground_truth.append(1)
-                
-            except Exception as e:
-                print("Not Working")
-
-        # self.save_details(raw_images, texts, ground_truth, "irfl.pkl")
-        
+            ground_truth += ["no", "no", "no", "yes"]
         return outputs, ground_truth
+
+    def get_image_path_from_hugginface_cache(self, image_name):
+        chached_image_path = self.IRFL_images[0]['image'].filename
+        chached_image_name = chached_image_path.split('/')[-1]
+        return chached_image_path.replace(chached_image_name, image_name.split('.')[0] + '.jpeg')
         
     def evaluate_dataset_batched(self,
-                         metric,
-                         model,
+                         model=None,
                          batch_size=32
                          ):
       pass

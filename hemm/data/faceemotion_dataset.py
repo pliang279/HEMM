@@ -9,25 +9,23 @@ import pandas as pd
 import random 
 
 from hemm.data.dataset import HEMMDatasetEvaluator
-from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.face_emotion_prompt import FaceEmotionPrompt
 from hemm.utils.common_utils import shell_command
-from hemm.metrics.bertscore_metric import BertScoreMetric
-from hemm.metrics.bleu_metric import BleuMetric
 
 class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
-                 data_path = 'face_emotion',
-                 kaggle_api_path = None
-                 ):
+                download_dir="./",
+                dataset_dir='face_emotion',
+                annotation_file=None,
+                **kwargs,
+                ):
         super().__init__()
-        self.dataset_key = 'face_emotion'
-        self.data_path = data_path
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.kaggle_api_path = kaggle_api_path
+        self.download_dir = download_dir
+        self.data_path = os.path.join(download_dir, "face_emotion")
+        self.kaggle_api_path = kwargs["kaggle_api_path"]
         self.prompt = FaceEmotionPrompt()
         self.choices = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
-        self.metrics = [BertScoreMetric(), BleuMetric()]
+        self.load()
 
     def get_prompt(self) -> str:
         prompt_text = self.prompt.format_prompt()
@@ -41,20 +39,17 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
 
         return len(data_dict)
         
-
-    def load(self, kaggle_api_path):
-        os.environ['KAGGLE_CONFIG_DIR'] = kaggle_api_path
-        if not os.path.exists('fer2013.zip'):
-          shell_command('kaggle datasets download -d msambare/fer2013')
-        if not os.path.exists('face_emotion'):
-          shell_command('unzip fer2013.zip')
-          shell_command('mv test face_emotion')
+    def load(self):
+        os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
+        if not os.path.exists(f'{self.download_dir}/fer2013.zip'):
+            shell_command(f'kaggle datasets download -d msambare/fer2013 -p {self.download_dir}')
+        if not os.path.exists(self.data_path):
+            shell_command(f'unzip {self.download_dir}/fer2013.zip -d {self.download_dir}')
+            shell_command(f'mv {self.download_dir}/test {self.download_dir}/face_emotion')
 
     def evaluate_dataset(self,
                          model,
                          ) -> None:
-        self.load(self.kaggle_api_path)
-        self.model = model
         
         predictions = []
         ground_truth = []
@@ -72,7 +67,7 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
             image_path = os.path.join(self.data_path, gt, img)
             ground_truth.append(gt)
             text = self.get_prompt()
-            output = self.model.generate(text, image_path)
+            output = model.generate(text, image_path)
             predictions.append(output)
 
         return predictions, ground_truth
@@ -81,7 +76,6 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
                          model,
                          batch_size=32
                          ) -> None:
-        self.load(self.kaggle_api_path)
         self.model = model
         
         ground_truth = []
@@ -104,15 +98,10 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
             texts.append(text)
             
             raw_image = Image.open(image_path).convert('RGB')
-            # raw_images.append(raw_image)
             image = self.model.get_image_tensor(raw_image)
             images.append(image)
 
-        samples = len(images)
-        # print(len(raw_images))
-        # samples = len(raw_images) // 10
-        # self.save_details(raw_images[:samples], texts[:samples], ground_truth[:samples], "face_emotion.pkl")
-        predictions = self.predict_batched(images[:samples], texts[:samples], batch_size)
+        predictions = self.predict_batched(images, texts, batch_size)
  
-        return predictions, ground_truth[:samples]
+        return predictions, ground_truth
     
