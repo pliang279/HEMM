@@ -28,6 +28,21 @@ Follow these steps to add a new dataset:
 5. Import the dataset file in ./hemm/utils/base_utils/ and add the suitable dataset key in the "load_dataset_evaluator" function.
 6. Check whether the dataset loads correctly. Finally, evaluate the loaded model on the dataset.
 
+## Models Currently Supported
+![HEMM Framework Overview](./images/num_params.png)
+
+HEMM currenlty supports the following open source Multimodal Foundation Models
+
+1. BLIP-2 (key: blip2)
+2. InstructBLIP (key: instruct_blip)
+3. mPLUG-Owl (key: mplugowl)
+4. Kosmos-2 (key: kosmos2)
+5. OpenFlamingo-3B (key: openflamingo)
+6. Fuyu-8B (key: fuyu)
+7. MiniGPT-4 (key: minigpt4)
+8. Emu (key: emu)
+9. LLaMA-Adapter V2 (key: llama_adapter)
+
 
 Create a virtual environment and install dependencies.
 
