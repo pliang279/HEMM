@@ -53,7 +53,7 @@ Follow these steps to add a new dataset:
 1. Go to ./hemm/prompts/
 2. Add a file containing the code to return the prompt for the task 
 3. Go to ./hemm/data/
-4. Add the dataset file containing the class (inherited from hemm.data.dataset.HEMMDatasetEvaluator) to load the dataset. Make sure to have the load, get_prompt, evaluate_dataset, and evaluate_dataset_batched methods. The load method should download the dataset files, get_prompt method should return the suitable prompt based on the inputs, evaluate_dataset method evaluates the input model on individual inputs without batching, and evaluate_dataset_batched method perfoms the batched inference (only if the model supports batched inference).  
+4. Add the dataset file containing the class (inherited from hemm.data.dataset.HEMMDatasetEvaluator) to load the dataset. Make sure to have the load, get_prompt, evaluate_dataset, and evaluate_dataset_batched methods. The load method should download the dataset files, get_prompt method should return the suitable prompt based on the inputs, evaluate_dataset method evaluates the input model on individual inputs without batching, and evaluate_dataset_batched method performs the batched inference (only if the model supports batched inference).  
 5. Import the dataset file in ./hemm/utils/base_utils/ and add the suitable dataset key in the "load_dataset_evaluator" function.
 6. Check whether the dataset loads correctly. Finally, evaluate the loaded model on the dataset.
 
@@ -62,7 +62,7 @@ Follow these steps to add a new dataset:
     <img src="./images/num_params.png" alt="Radial Plot" width="600px"/>
 </div>
 
-HEMM currenlty supports the following open source Multimodal Foundation Models
+HEMM currently supports the following open-source Multimodal Foundation Models
 
 1. BLIP-2 (key: blip2)
 2. InstructBLIP (key: instruct_blip)
@@ -79,7 +79,7 @@ For our analysis, we also evaluate the closed models - GPT-4V and Gemini 1.0 Pro
 Follow these steps to add new models to HEMM:
 
 1. Go to ./hemm/models/
-2. Add the model file containing the code to load the model and generate the response. The model class can inherit from hemm.models.model.HEMMModel. The class should contain the methods - load_weight and generate for loading the pre-trained weights and running inference on a single image-text input. If the model supports batched inference, add the get_image_tensor and generate_batch methods for getting the image featrues from the model and running batched inference. 
+2. Add the model file containing the code to load the model and generate the response. The model class can inherit from hemm.models.model.HEMMModel. The class should contain the methods - load_weight and generate for loading the pre-trained weights and running inference on a single image-text input. If the model supports batched inference, add the get_image_tensor and generate_batch methods for getting the image features from the model and running batched inference. 
 3. Import the model file in ./hemm/utils/base_utils and add the suitable model key in the "load_model" function.
 4. Check whether the new model is loaded and can be evaluated on the datasets.
 
@@ -108,8 +108,8 @@ We perform our analysis on text-generation tasks and compute the BARTScore(gener
 
 * Overall, Science, Healthcare, and HCI datasets are more challenging for the models as compared to Multimedia and Affective Computing, with iNaturalist (Species Classification), DECIMER, Enrico, PathVQA, and MemeCap being the most difficult tasks for the models. 
 * Tasks requiring external knowledge are significantly harder than tasks not requiring external knowledge. We do not find a significant difference between the average scores on less reasoning and more reasoning datasets indicating that we need better datasets to test for complex reasoning. 
-* On average, Large models perform signifcantly better than medium/small sized models with signifcant improvements of upto 75%. Models with diverse pretraining data achieve higher scores than models pretrained only using standard image captioning datasets, showing improvements on tasks like iNaturalist and MemeCap which are knowledge intensive and require complex reasoning.
-* Instruction tuned models significantly outperform models with only supervised fine-tuning, and achieve better performance on cross-modal translation tasks (e.g., DECIMER, Screen2Words, MemeCap) by generating more accurate and detailed captions. However, some instruction tuned models still stuggle to follow instructions. Larger and more diverse instruction tuning datasets can help alleviate this problem.   
+* On average, Large models perform significantly better than medium/small-sized models with significant improvements of up to 75%. Models with diverse pretraining data achieve higher scores than models pretrained only using standard image captioning datasets, showing improvements on tasks like iNaturalist and MemeCap which are knowledge-intensive and require complex reasoning.
+* Instruction-tuned models significantly outperform models with only supervised fine-tuning and achieve better performance on cross-modal translation tasks (e.g., DECIMER, Screen2Words, MemeCap) by generating more accurate and detailed captions. However, some instruction-tuned models still struggle to follow instructions. Larger and more diverse instruction-tuning datasets can help alleviate this problem.   
 
 
 ## Usage 
