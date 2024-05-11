@@ -7,14 +7,19 @@ from hemm.metrics.metric import HEMMMetric
 from scipy import spatial
 
 class MSEMetric(HEMMMetric):
+	def __init__(self):
+		self.name = "Image MSE"
+				
 	def compute(self, 
 				img_preds, 
 				img_gts):
-		self.name = "Image MSE"
 		crit = nn.MSELoss()
 		error = 0
 		for pred, gt in zip(img_preds, img_gts):
-			gt_img = Image.open(gt).convert("RGB")
+			if not isinstance(gt, Image.Image):
+				gt_img = Image.open(gt).convert("RGB")
+			else:
+				gt_img = gt
 			pred_img = pred.resize(gt_img.size)
 			gt_img = transforms.ToTensor()(gt_img)
 			pred_img = transforms.ToTensor()(pred_img)
@@ -27,6 +32,7 @@ class CLIPIMetric(HEMMMetric):
 		self.name = "CLIP-I Score"
 		self.device = device
 		self.model, self.transform = clip.load("ViT-B/32", device)
+		self.model.eval()
 
 	def encode(self, image):
 		image_input = self.transform(image).unsqueeze(0).to(self.device)
@@ -43,7 +49,11 @@ class CLIPIMetric(HEMMMetric):
 		"""
 		eval_score = 0
 		for pred, gt in zip(img_preds, img_gts):
-			gt_img = Image.open(gt).convert("RGB")
+			if not isinstance(gt, Image.Image):
+				gt_img = Image.open(gt).convert("RGB")
+			else:
+				gt_img = gt
+			# gt_img = Image.open(gt).convert("RGB")
 			gt_features = self.encode(gt_img)
 			pred_features = self.encode(pred)
 			
