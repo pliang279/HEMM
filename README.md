@@ -78,7 +78,7 @@ Follow these steps to add new models to HEMM:
 
 ### Metrics
 
-HEMM currently supports the following metrics for text generation tasks. Since BARTScore has the higher human correlation amongst these metrics, we use BARTScore for our analysis.
+HEMM currently supports the following metrics for text generation tasks. Since BARTScore has the highest human correlation amongst these metrics, we use BARTScore for our analysis.
 
 1. BARTScore
 2. BERTScore
