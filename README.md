@@ -117,69 +117,34 @@ pip install -r requirements.txt
 cd HEMM
 ```
 
-Note: We use some datasets from Huggingface and Kaggle. Make sure to get your api key from the following [link](https://huggingface.co/docs/hub/en/security-tokens) and [link](https://github.com/Kaggle/kaggle-api).
-Provide the path of the directory where kaggle.json is stored in the ```load_dataset_evaluator```
+Note: We use some datasets from Huggingface and Kaggle. Make sure to get your api key from [Hugginface](https://huggingface.co/docs/hub/en/security-tokens) and [Kaggle](https://github.com/Kaggle/kaggle-api). Provide the Huggingface Authorization token (hf_auth_token) and the path (kaggle_api_path) of the directory where kaggle.json is stored in the ```load_dataset_evaluator```
 
 Sample code:
 
 ```python
-from hemm.utils.base_utils import load_model, load_dataset_evaluator, load_metric
+from hemm.utils.base_utils import load_model, load_dataset_evaluator
+from hemm.metrics.bartscore_metric import BartScoreMetric
 
-model_key = 'minigpt4'
-model = load_model(model_key)
+model_key = 'blip2'
+model = load_model(model_key, download_dir="./")
 model.load_weights()
 
 dataset_name = 'hateful_memes'
-dataset_evaluator = load_dataset_evaluator(dataset_name, kaggle_api_directory='./')
-
-metric_name = 'accuracy'
-metric = load_metric(metric_name)
+dataset_evaluator = load_dataset_evaluator(dataset_name,
+                                            download_dir="./",
+                                            kaggle_api_directory=kaggle_api_path,
+                                            hf_auth_token=hf_auth_token,)
 
 ## For single data point evaluation
-results = dataset_evaluator.evaluate_dataset(model=model, metric=metric)
+predictions, ground_truth = dataset_evaluator.evaluate_dataset(model=model)
+metric = BartScoreMetric()
+bart_score = metric.compute(predictions, ground_truth)
+
+## For batching evaluation (if model supports batched inference)
+results = dataset_evaluator.evaluate_dataset_batched(model=model, batch_size=32)
 print(results)
-
-## For batching evaluation
-results = dataset_evaluator.evaluate_dataset_batched(model=model, metric=metric, batch_size=32)
-print(results)
 ```
 
-
----------------------------------------------------------------------------
-
-
-Following models and datasets are supported -> 
-
-Models
-```
-blip2
-minigpt4
-```
-
-Datasets
-```
-hateful_memes
-newyorkercartoon
-memecaps
-memotion
-nocaps
-irfl
-scienceqa
-vqa
-vcr
-gqa
-okvqa
-vqarad
-resisc45
-ucmerced
-pathvqa
-face_emotion
-```
-
-To evaluate these datasets, metrics are specified in the ```hemm.metrics``` directory
-For ```memecaps``` and ```nocaps``` dataset, ```bleu_score``` or ```bertscore``` metric is used. All QA datasets use ```bertscore``` metric. Rest of the other datasets use ```accuracy``` metric. 
+## Leaderboard
 
 
------------------------------------------------------------------------------------------
-
-To add new datasets, metrics and models, base class is provided in each of the modules ```hemm/models/model.py```, ```hemm/metrics/metric.py``` and ```hemm/data/dataset.py``` Inheriting these abstract classess will allow the user to contribute to HEMM.
