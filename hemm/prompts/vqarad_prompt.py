@@ -1,8 +1,7 @@
 class VQARADPrompt:
     def __init__(self):
-        self.prompt = """You are given a radiology image and a question. Answer the question in a single word.
-                    Question:{}
-                    """
+        self.prompt = """Given a Radiology image and a Question. Answer the question in a single word.\nQuestion: {}\nAnswer: """
 
     def format_prompt(self, text):
         return self.prompt.format(text)
+        

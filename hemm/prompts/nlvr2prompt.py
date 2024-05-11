@@ -9,12 +9,8 @@ Original file is located at
 
 class NLVR2prompt:
   def __init__(self):
-       self.prompt="""
-        You are given an image and a related text, use the image as context and reply with true or false only
-        Text: {}
-        Answer:
-        """
+       self.prompt="""Given an image and the Question: {}, Answer the question with only 'true' or 'false'. Answer: """
 
   def format_prompt(self, text):
-        self.prompt = self.prompt.format(text)
-        return self.prompt
+        prompt_text = self.prompt.format(text)
+        return prompt_text

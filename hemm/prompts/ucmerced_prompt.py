@@ -1,10 +1,6 @@
 class UCMercedPrompt:
     def __init__(self):
-        self.prompt = """Image is given to you. Classify if the image belongs to one of the following classes: 
-         mediumresidential, buildings, tenniscourt, denseresidential, baseballdiamond, intersection, harbor, parkinglot, river, overpass, mobilehomepark, runway, forest, beach, freeway, 
-         airplane, storagetanks, chaparral, golfcourse, sparseresidential, agricultural. 
-         Choose a class from the above classes.
-         """
+        self.prompt = """Classify the given land image into the following classes: mediumresidential, buildings, tenniscourt, denseresidential, baseballdiamond, intersection, harbor, parkinglot, river, overpass, mobilehomepark, runway, forest, beach, freeway, airplane, storagetanks, chaparral, golfcourse, sparseresidential, agricultural.\nChoose a class from the above classes: """
 
     def format_prompt(self):
         return self.prompt

@@ -12,15 +12,11 @@ from hemm.models.mplug_owl.tokenization_mplug_owl import MplugOwlTokenizer
 from hemm.models.mplug_owl.processing_mplug_owl import MplugOwlImageProcessor, MplugOwlProcessor
 
 class MplugOwl(HEMMModel):
-	def __init__(self,
-				 pretrained_ckpt = 'MAGAer13/mplug-owl-llama-7b',
-				 ) -> None:
-		self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-		self.ckpt = pretrained_ckpt
+	def __init__(self, device="cuda"):
+		self.device = torch.device(device)
+		self.ckpt = 'MAGAer13/mplug-owl-llama-7b'
 		self.generate_kwargs = {
-			'do_sample': True,
-			'top_k': 5,
-			'max_length': 512
+			'max_new_tokens': 100,
 			}
 
 	def load_weights(self):
@@ -40,6 +36,14 @@ class MplugOwl(HEMMModel):
 			raw_image = image
 		
 		return raw_image
+	
+	def reform_text(self, text):
+		new_prompt = f''' The following is a conversation between a curious human and AI assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.
+		Human: <image>
+		Human: {text} 
+		AI: '''
+		
+		return new_prompt
 
 	def generate(self,
 				 text: Optional[str],
@@ -57,7 +61,7 @@ class MplugOwl(HEMMModel):
 		else:
 			raw_image = image
 
-		inputs = self.processor(text=[text], images=[raw_image], return_tensors='pt')
+		inputs = self.processor(text=[self.reform_text(text)], images=[raw_image], return_tensors='pt')
 		inputs = {k: v.bfloat16() if v.dtype == torch.float else v for k, v in inputs.items()}
 		inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
 		with torch.no_grad():
@@ -65,26 +69,3 @@ class MplugOwl(HEMMModel):
 		sentence = self.tokenizer.decode(res.tolist()[0], skip_special_tokens=True)
 
 		return sentence	
-
-	def generate_batch(self, 
-					   images: torch.Tensor,
-					   texts: List[str], 
-					   batch_size, 
-					   ):
-		
-		answers = []
-		for i in tqdm(range(0, len(texts), batch_size)):
-			img_batch = images[i : i + batch_size]
-			text_batch = texts[i : i + batch_size]
-
-			inputs = self.processor(text=text_batch, images=img_batch, return_tensors='pt')
-			inputs = {k: v.bfloat16() if v.dtype == torch.float else v for k, v in inputs.items()}
-			inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
-			with torch.no_grad():
-				res = self.model.generate(**inputs, **self.generate_kwargs)
-			
-			for out in res.tolist():
-				sentence = self.tokenizer.decode(out, skip_special_tokens=True)
-				answers.append(sentence)
-		
-		return answers

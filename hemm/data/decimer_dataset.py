@@ -48,7 +48,6 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
 	def evaluate_dataset(self,
 						 model,
 						 ) -> None:
-		self.load()
 		
 		predictions = []
 		ground_truth = []
@@ -67,7 +66,6 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
 						 model,
 						 batch_size=32
 						 ) -> None:
-		self.load()
 		self.model = model
 		
 		predictions = []
