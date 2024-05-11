@@ -19,7 +19,7 @@ Overall, HEMM's collection of 30 datasets enables a systematic evaluation of tod
 
 ## Categorisation 
 
-### Dataset Categorisation
+### Dataset Categorization
 We categorize the datasets based on individual dimensions such as Use Case, Multimodal Interaction, Granularity of Multimodal Alignment, Level of Reasoning, Cross-Modal Information Flow, and External Knowledge. Below are the categories for the dimensions
 
 * Use Case: Multimedia, Affective Computing, Science, Healthcare, and HCI
@@ -29,7 +29,7 @@ We categorize the datasets based on individual dimensions such as Use Case, Mult
 * Reasoning: Less and More
 * Multimodal Interaction: Redundancy, Uniqueness, and Synergy
 
-### Model Categorisation
+### Model Categorization
 Modeling dimensions and categories are as follows:
 
 * Modality Processing: Interleaved and Separate
@@ -39,7 +39,7 @@ Modeling dimensions and categories are as follows:
 * Instruction Tuning: Yes (Instruction tuned) and No (only Supervised fine-tuning)
 * Diversity of Pretraining Data: Diverse and Non-Diverse
 
-## Datasets Currently Supported
+## Currently Supported Datasets
 HEMM currently supports the following datasets
 
 1. Multimedia: VQA, Visual Genome, VCR, OK-VQA, GQA, NoCaps, Flickr30k, Winoground, NLVR, NLVR2, IRFL, MM-IMDb, Magic Brush 
@@ -57,7 +57,7 @@ Follow these steps to add a new dataset:
 5. Import the dataset file in ./hemm/utils/base_utils/ and add the suitable dataset key in the "load_dataset_evaluator" function.
 6. Check whether the dataset loads correctly. Finally, evaluate the loaded model on the dataset.
 
-## Models Currently Supported
+## Currently Supported Models
 <div align="center">
     <img src="./images/num_params.png" alt="Radial Plot" width="600px"/>
 </div>
