@@ -13,9 +13,9 @@ from PIL import Image
 import torch.distributed as dist
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
 
-from hemm.models.emu.mm_eval.datasets.vqa_tools.vqa import VQA
-from hemm.models.emu.mm_eval.datasets.vqa_tools.vqa_eval import OKVQAEval
-from hemm.models.emu.mm_eval.datasets.utils import short_answer
+from .vqa_tools.vqa import VQA
+from .vqa_tools.vqa_eval import OKVQAEval
+from .utils import short_answer
 
 
 class OKVQADataset(Dataset):

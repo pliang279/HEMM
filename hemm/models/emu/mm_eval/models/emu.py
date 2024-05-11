@@ -3,7 +3,7 @@ import numpy as np
 
 from dataclasses import dataclass, field
 import torch
-from hemm.models.emu.inference import prepare_model, parse_args
+from inference import prepare_model, parse_args
     
 def process_img(img_path=None, img=None, device=torch.device("cuda")):
     assert img_path is not None or img is not None, "you should pass either path to an image or a PIL image object"

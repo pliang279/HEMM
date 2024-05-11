@@ -3,7 +3,7 @@
 import argparse
 
 from PIL import Image
-from hemm.models.emu.models.pipeline import EmuGenerationPipeline
+from models.pipeline import EmuGenerationPipeline
 
 
 def parse_args():

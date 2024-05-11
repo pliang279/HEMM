@@ -10,8 +10,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from timm.models.layers import drop_path, to_2tuple, trunc_normal_
 
-from hemm.models.emu.models.transformer import PatchDropout, AttentionalPooler
-from hemm.models.emu.models.rope import VisionRotaryEmbedding, VisionRotaryEmbeddingFast
+from .transformer import PatchDropout, AttentionalPooler
+from .rope import VisionRotaryEmbedding, VisionRotaryEmbeddingFast
 
 if os.getenv('ENV_TYPE') == 'deepspeed':
     from deepspeed.runtime.activation_checkpointing.checkpointing import checkpoint

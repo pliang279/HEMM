@@ -7,11 +7,9 @@ from hemm.models.model import HEMMModel
 from transformers import FuyuProcessor, FuyuForCausalLM
 
 class Fuyu(HEMMModel):
-	def __init__(self,
-				 ):
+	def __init__(self, device):
 		super().__init__()
-		self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-		print(self.device)
+		self.device = torch.device(device)
 
 	def load_weights(self):	
 		model_id = "adept/fuyu-8b"

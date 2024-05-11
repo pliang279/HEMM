@@ -4,10 +4,10 @@ from typing import List, Optional
 import torch
 
 from torch import nn
-from hemm.models.emu.models.causal_former import CausalFormer
-from hemm.models.emu.models.model import MultimodalCfg, CLIPVisionCfg, VLadapterCfg, _build_vision_tower
-from hemm.models.emu.models.transformer import LayerNorm
-from hemm.models.emu.models.prediction_mixin import PredictClassMixin
+from .causal_former import CausalFormer
+from .model import MultimodalCfg, CLIPVisionCfg, VLadapterCfg, _build_vision_tower
+from .transformer import LayerNorm
+from .prediction_mixin import PredictClassMixin
 
 try:
     from transformers import BeamSearchScorer, LogitsProcessorList, MinLengthLogitsProcessor, StoppingCriteriaList, \
@@ -56,7 +56,7 @@ class Emu(nn.Module, PredictClassMixin):
         nn.init.constant_(self.ln_visual.bias, 0)
         nn.init.constant_(self.ln_visual.weight, 1.0)
 
-        from models.modeling_llama import LLaMAForClsAndRegression
+        from hemm.models.emu.models.modeling_llama import LLaMAForClsAndRegression
         self.decoder = LLaMAForClsAndRegression(args=args)
 
         if multimodal_cfg.freeze:
@@ -127,7 +127,7 @@ class Emu(nn.Module, PredictClassMixin):
 
         prompt = samples["prompt"] if "prompt" in samples.keys() else self.prompt
 
-        from models.modeling_llama import LLaMAForClsAndRegression
+        from hemm.models.emu.models.modeling_llama import LLaMAForClsAndRegression
         if isinstance(self.decoder, LLaMAForClsAndRegression):
             self.decoder.tokenizer.padding_side = "left"
 

@@ -8,8 +8,8 @@ from functools import partial
 
 import torch
 
-from hemm.models.emu.models.eva_vit_model import EVAVisionTransformer
-from hemm.models.emu.models.transformer import LayerNormFp32, LayerNorm
+from .eva_vit_model import EVAVisionTransformer
+from .transformer import LayerNormFp32, LayerNorm
 
 
 @dataclass

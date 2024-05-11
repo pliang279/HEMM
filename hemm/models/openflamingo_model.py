@@ -13,38 +13,47 @@ from hemm.utils.common_utils import shell_command
 from hemm.models.open_flamingo.open_flamingo import create_model_and_transforms
 from hemm.models.open_flamingo.open_flamingo.eval.utils import unwrap_model, get_autocast, get_cast_dtype
 
+def ref_text(text):
+    sents = text.split("\n")
+    sents = [sent.strip() for sent in sents]
+    return " ".join(sents).strip()
+
 class OpenFlamingoModel(HEMMModel):
-    def __init__(self,
-                 ) -> None:
+    def __init__(self, device="cuda", **kwargs) -> None:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.cache_dir = kwargs["cache_dir"]
 
     def load_weights(self):
         """
         Loads the model and it's processor with the initialized weight directory
         :return:
         """
-        model, image_processor, tokenizer = create_model_and_transforms(
+        self.model, self.image_processor, self.tokenizer = create_model_and_transforms(
             clip_vision_encoder_path="ViT-L-14",
             clip_vision_encoder_pretrained="openai",
             lang_encoder_path="anas-awadalla/mpt-1b-redpajama-200b",
             tokenizer_path="anas-awadalla/mpt-1b-redpajama-200b",
             cross_attn_every_n_layers=1,
+            cache_dir=self.cache_dir,
         )
-        self.model = model
-        self.image_processor = image_processor
-        self.tokenizer = tokenizer
 
         checkpoint_path = hf_hub_download("openflamingo/OpenFlamingo-3B-vitl-mpt1b", "checkpoint.pt")
-        self.model.load_state_dict(torch.load(checkpoint_path), strict=False)
+        ckpt = torch.load(checkpoint_path, map_location="cpu")
+        
+        if "model_state_dict" in ckpt:
+            ckpt = ckpt["model_state_dict"]
+            ckpt = {k.replace("module.", ""): v for k, v in ckpt.items()}
+
+        self.model.load_state_dict(ckpt, strict=False)
         self.tokenizer.padding_side = "left"
-        self.model.to(self.device)
+        self.model = self.model.to(self.device)
     
     def get_image_tensor(self, image):
         """
         Get image tensor using model's vision processor.
         Tensor should have batch dimension.
         """
-        vision_x = self.image_processor(image).unsqueeze(0).to(self.device)
+        vision_x = self.image_processor(image).unsqueeze(0)
         return vision_x
 
     def generate(self,
@@ -58,37 +67,39 @@ class OpenFlamingoModel(HEMMModel):
         :param return_logits: return logit tensor if true, else return text/image.
         :return: return str, image or logit tensor.
         """
-        image = Image.open(image)
+        if not isinstance(image, Image.Image):
+            image = Image.open(image).convert("RGB")
+
+        # image = Image.open(image)
         vision_x = [self.image_processor(image).unsqueeze(0)]
         vision_x = torch.cat(vision_x, dim=0)
-        vision_x = vision_x.unsqueeze(1).unsqueeze(0)
-        vision_x.to(self.device)
+        vision_x = vision_x.unsqueeze(1).unsqueeze(0).to(self.device)
 
         lang_x = self.tokenizer(
-            ["<image>"+str(text)],
+            ["<image>" + str(text) + "<|endofchunk|>"],
             return_tensors="pt",
-        )
-        lang_x.to(self.device)
+        ).to(self.device)
 
-        generated_text = self.model.generate(
-            vision_x=vision_x,
-            lang_x=lang_x["input_ids"],
-            attention_mask=lang_x["attention_mask"],
-            max_new_tokens=20,
-            num_beams=3,
-        )
+        with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+            generated_text = self.model.generate(
+                vision_x=vision_x,
+                lang_x=lang_x["input_ids"],
+                attention_mask=lang_x["attention_mask"],
+                max_new_tokens=50,
+            )
 
-        decoded_text =  self.tokenizer.decode(generated_text[0])
-        decoded_text = decoded_text.replace(text, '')
+        from_len = len(lang_x["input_ids"][0])
+        decoded_text =  self.tokenizer.decode(generated_text[0][from_len:], skip_special_tokens=True)
+        decoded_text = decoded_text.replace(ref_text(text), '')
         decoded_text = decoded_text.replace('<image>', '')
         return decoded_text
 
-    def generate_batch_func(self, batch_images, batch_texts, batch_size, max_new_tokens=512, num_beams=3):
+    def generate_batch_func(self, batch_images, batch_texts, batch_size, max_new_tokens=50, num_beams=3):
         """
         batch_images: [8,3,512,512]
         batch_texts: [str1, str2, str3, str4,str1, str6, str7, str8,]
         """
-        texts = ['<image>'+str(text_) for text_ in batch_texts]
+        texts = ['<image> '+ str(text_) for text_ in batch_texts]
         encodings = self.tokenizer(
             texts,
             padding='longest',
@@ -106,18 +117,20 @@ class OpenFlamingoModel(HEMMModel):
         batch_images.to(self.device)
 
         with torch.inference_mode():
-            outputs = self.model.generate(
-                batch_images,
-                input_ids,
-                attention_mask,
-                max_new_tokens=max_new_tokens,
-                num_beams=num_beams,
-            )
-        
-        outputs = outputs[:, len(input_ids[0]) :]
-        return self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+            with torch.cuda.amp.autocast(dtype=torch.bfloat16):
+                outputs = self.model.generate(
+                    batch_images,
+                    input_ids,
+                    attention_mask,
+                    max_new_tokens=max_new_tokens,
+                    num_beams=num_beams
+                )
 
-    def generate_batch(self, images, texts, batch_size, max_new_tokens=10, num_beams=3):
+        outputs = outputs[:, len(input_ids[0]) :]
+        out = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+        return out
+
+    def generate_batch(self, images, texts, batch_size, max_new_tokens=50, num_beams=3):
         answers = []
         total_batches = len(texts) // batch_size
 
@@ -126,18 +139,17 @@ class OpenFlamingoModel(HEMMModel):
             end_idx = (batch_idx + 1) * batch_size 
             
             batch_texts = texts[start_idx:end_idx]
-            batch_images = images[start_idx:end_idx]
+            batch_images = images[start_idx:end_idx].to(self.device)
             batch_answers = self.generate_batch_func(batch_images, batch_texts, batch_size, max_new_tokens, num_beams)
             answers.extend(batch_answers)
             
-        
         if len(texts) % batch_size != 0:
             start_idx = total_batches * batch_size
             end_idx = len(texts)
 
             # Get the remaining data as a smaller batch
             batch_texts = texts[start_idx:end_idx]
-            batch_images = images[start_idx:end_idx]
+            batch_images = images[start_idx:end_idx].to(self.device)
             batch_answers = self.generate_batch_func(batch_images, batch_texts, batch_size, max_new_tokens, num_beams)
             answers.extend(batch_answers)
 
