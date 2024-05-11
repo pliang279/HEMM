@@ -3,7 +3,9 @@
 
 ## Overview 
 
-![HEMM Framework Overview](./images/hemm_overview.png)
+<div align="center">
+    <img src="./images/hemm_overview.png" alt="Radial Plot" width="600px"/>
+</div>
 
 Multimodal foundation models that can holistically process text alongside images, video, audio, and other sensory modalities are increasingly used in a variety of real-world domains. However, it is challenging to characterize and study progress in multimodal foundation models, given the range of possible modeling decisions, tasks, and domains. In this work, we introduce Holistic Evaluation of Multimodal Models (HEMM) as a framework to systematically evaluate the capabilities of multimodal foundation models across a set of 3 comprehensive dimensions: basic skills, information flow, and real-world use cases. *Basic multimodal skills* are internal abilities required to solve problems, such as learning interactions across modalities, fine-grained alignment, multi-step reasoning, and the ability to handle external knowledge. *Information flow* studies how multimodal content changes during a task through querying, translation, editing, and fusion. *Use cases* span domain-specific challenges introduced in real-world multimedia, affective computing, natural sciences, healthcare, and human-computer interaction applications.
 
@@ -51,7 +53,9 @@ Follow these steps to add a new dataset:
 6. Check whether the dataset loads correctly. Finally, evaluate the loaded model on the dataset.
 
 ## Models Currently Supported
-![Model scores](./images/num_params.png)
+<div align="center">
+    <img src="./images/num_params.png" alt="Radial Plot" width="600px"/>
+</div>
 
 HEMM currenlty supports the following open source Multimodal Foundation Models
 
@@ -91,11 +95,15 @@ For Image generation tasks, HEMM supports Mean Squared Error and CLIP-I score.
 
 We perform our analysis on text-generation tasks and compute the BARTScore(generation, ground truth) of the models on all the tasks. For each task, we then normalize the scores using min-max scaling, where min represents the score of the worst performing model and max corresponds to the identity score (BARTScore(ground truth, ground truth)).
 
-### Results 
-![Results on use cases](./images/radial_plot.png)
+### Results
+<div align="center">
+    <img src="./images/radial_plot.png" alt="Radial Plot" width="400px"/>
+</div>
+
+
 * Overall, Science, Healthcare, and HCI datasets are more challenging for the models as compared to Multimedia and Affective Computing, with iNaturalist (Species Classification), DECIMER, Enrico, PathVQA, and MemeCap being the most difficult tasks for the models. 
 * Tasks requiring external knowledge are significantly harder than tasks not requiring external knowledge. We do not find a significant difference between the average scores on less reasoning and more reasoning datasets indicating that we need better datasets to test for complex reasoning. 
-* On average, Large models perform signifcantly better than medium/small sized models with signifcant improvements of upto 75%. Models with diverse pretraining data achieve higher scores than models pretrained only using standard image captioning datasets, showing improvements on tasks like iNaturalist and MemeCap which are knowledge intensive and require complex reasoning.    
+* On average, Large models perform signifcantly better than medium/small sized models with signifcant improvements of upto 75%. Models with diverse pretraining data achieve higher scores than models pretrained only using standard image captioning datasets, showing improvements on tasks like iNaturalist and MemeCap which are knowledge intensive and require complex reasoning.
 * Instruction tuned models significantly outperform models with only supervised fine-tuning, and achieve better performance on cross-modal translation tasks (e.g., DECIMER, Screen2Words, MemeCap) by generating more accurate and detailed captions. However, some instruction tuned models still stuggle to follow instructions. Larger and more diverse instruction tuning datasets can help alleviate this problem.   
 
 
