@@ -10,6 +10,28 @@ Multimodal foundation models that can holistically process text alongside images
 
 Overall, HEMM's collection of 29 datasets enables a systematic evaluation of today's multimodal foundation models. Through comprehensive experiments of many models across HEMM tasks, we (1) identify key *dataset dimensions* (e.g., basic skills, information flows, and use cases) that pose challenges to today's models, and (2) distill performance trends regarding how different *modeling dimensions* (e.g., scale, pre-training data, multimodal alignment, pre-training, and instruction tuning objectives) influence downstream task performance. These findings yield important conclusions regarding challenging multimodal interactions, use cases, and tasks requiring reasoning and external knowledge, the benefits of data and model scale, and the benefits of instruction-tuning.
 
+## Categorisation 
+
+### Dataset Categorisation
+We categorise the datasets based on individual dimensions such as Use Case, Multimodal Interaction, Granularity of Multimodal Alignment, Level of Reasoning, Cross-Modal Information Flow, and External Knowledge. Below are the categories for the dimensions
+
+* Use Case: Multimedia, Affective Computing, Science, Healthcare, and HCI
+* Cross-Modal Information Flow: Querying, Translation, and Fusion
+* Granularity of Multimodal Alignment: Yes (Fine-Grained) and No (Not Fine-Grained)
+* External Knowledge: Yes (External Knowledge needed) and No (External Knowledge not needed)
+* Reasoning: Less and More
+* Multimodal Interaction: Redundancy, Uniqueness, and Synergy
+
+### Model Categorisation
+Modeling dimensions and categories are as follows:
+
+* Modality Processing: Interleaved and Separate
+* Model Size: Small, Medium, and Large
+* Training Type: Modular Fine-tuning and End-to-End 
+* Size of Training Data: Small, Medium and Large
+* Instruction Tuning: Yes (Instruction tuned) and No (only Supervised fine-tuning)
+* Diversity of Pretraining Data: Diverse and Non-Diverse
+
 ## Datasets Currently Supported
 HEMM currently supports the following datasets
 
@@ -29,7 +51,7 @@ Follow these steps to add a new dataset:
 6. Check whether the dataset loads correctly. Finally, evaluate the loaded model on the dataset.
 
 ## Models Currently Supported
-![HEMM Framework Overview](./images/num_params.png)
+![Model scores](./images/num_params.png)
 
 HEMM currenlty supports the following open source Multimodal Foundation Models
 
@@ -42,6 +64,36 @@ HEMM currenlty supports the following open source Multimodal Foundation Models
 7. MiniGPT-4 (key: minigpt4)
 8. Emu (key: emu)
 9. LLaMA-Adapter V2 (key: llama_adapter)
+
+For our analysis, we also evaluate the closed models - GPT-4V and Gemini 1.0 Pro Vision. 
+
+Follow these steps to add new models to HEMM:
+
+1. Go to ./hemm/models/
+2. Add the model file containing the code to load the model and generate the response. The model class can inherit from hemm.models.model.HEMMModel. The class should contain the methods - load_weight and generate for loading the pre-trained weights and running inference on a single image-text input. If the model supports batched inference, add the get_image_tensor and generate_batch methods for getting the image featrues from the model and running batched inference. 
+3. Import the model file in ./hemm/utils/base_utils and add the suitable model key in the "load_model" function.
+4. Check whether the new model is loaded and can be evaluated on the datasets.
+
+## Evaluation
+
+### Metrics
+
+HEMM currently supports the following metrics for text generation tasks. Since BARTScore has the higher human correlation amongst these metrics, we use BARTScore for our analysis.
+
+1. BARTScore
+2. BERTScore
+3. ROUGE
+4. RefCLIP-S
+
+For Image generation tasks, HEMM supports Mean Squared Error and CLIP-I score. 
+
+### Protocol
+
+We perform our analysis on text-generation tasks and compute the BARTScore(generation, ground truth) of the models on all the tasks. For each task, we then normalize the scores using min-max scaling, where min represents the score of the worst performing model and max corresponds to the identity score (BARTScore(ground truth, ground truth)).
+
+### Results 
+
+![Results on use cases](./images/radial_plot.png)
 
 
 Create a virtual environment and install dependencies.
