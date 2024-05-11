@@ -92,10 +92,14 @@ For Image generation tasks, HEMM supports Mean Squared Error and CLIP-I score.
 We perform our analysis on text-generation tasks and compute the BARTScore(generation, ground truth) of the models on all the tasks. For each task, we then normalize the scores using min-max scaling, where min represents the score of the worst performing model and max corresponds to the identity score (BARTScore(ground truth, ground truth)).
 
 ### Results 
-
 ![Results on use cases](./images/radial_plot.png)
+* Overall, Science, Healthcare, and HCI datasets are more challenging for the models as compared to Multimedia and Affective Computing, with iNaturalist (Species Classification), DECIMER, Enrico, PathVQA, and MemeCap being the most difficult tasks for the models. 
+* Tasks requiring external knowledge are significantly harder than tasks not requiring external knowledge. We do not find a significant difference between the average scores on less reasoning and more reasoning datasets indicating that we need better datasets to test for complex reasoning. 
+* On average, Large models perform signifcantly better than medium/small sized models with signifcant improvements of upto 75%. Models with diverse pretraining data achieve higher scores than models pretrained only using standard image captioning datasets, showing improvements on tasks like iNaturalist and MemeCap which are knowledge intensive and require complex reasoning.    
+* Instruction tuned models significantly outperform models with only supervised fine-tuning, and achieve better performance on cross-modal translation tasks (e.g., DECIMER, Screen2Words, MemeCap) by generating more accurate and detailed captions. However, some instruction tuned models still stuggle to follow instructions. Larger and more diverse instruction tuning datasets can help alleviate this problem.   
 
 
+## Usage 
 Create a virtual environment and install dependencies.
 
 ```
