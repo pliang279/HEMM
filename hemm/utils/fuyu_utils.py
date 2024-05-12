@@ -5,7 +5,7 @@ from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_da
                         vqa_dataset,vcr_dataset, ok_vqa_dataset, gqa_dataset, vqarad_dataset, \
                         pmcvqa_dataset, pathvqa_dataset, rsicd_dataset, ucmerced_dataset, \
                         resisc45_dataset, winogroundVQA_dataset, nlvr2, nlvr_dataset, faceemotion_dataset, \
-                        cocoqa_dataset, visualgenome_dataset, screen2words_dataset, flick30k_new_dataset, \
+                        cocoqa_dataset, visualgenome_dataset, screen2words_dataset, flickr30k_dataset, \
                         decimer_dataset, enrico_dataset, inat_dataset, magic_brush_dataset, mmimdb_dataset, \
                         plip_kather_dataset, slake_dataset
                         
