@@ -6,9 +6,8 @@ from tqdm import tqdm
 from hemm.models.model import HEMMModel
 from lavis.models import load_model_and_preprocess
 
-
 class InstructBlip(HEMMModel):
-	def __init__(self, device="cuda", **kwargs):
+	def __init__(self, device="cuda", download_dir="./", **kwargs):
 		super().__init__()
 		self.model_type = kwargs["model_type"]
 		self.device = torch.device(device)

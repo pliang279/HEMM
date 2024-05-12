@@ -12,7 +12,7 @@ from hemm.models.mplug_owl.tokenization_mplug_owl import MplugOwlTokenizer
 from hemm.models.mplug_owl.processing_mplug_owl import MplugOwlImageProcessor, MplugOwlProcessor
 
 class MplugOwl(HEMMModel):
-	def __init__(self, device="cuda"):
+	def __init__(self, device="cuda", download_dir="./", **kwargs):
 		self.device = torch.device(device)
 		self.ckpt = 'MAGAer13/mplug-owl-llama-7b'
 		self.generate_kwargs = {
