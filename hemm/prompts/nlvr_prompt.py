@@ -9,11 +9,8 @@ Original file is located at
 
 class nlvrprompt:
   def __init__(self):
-       self.prompt="""Given this image along with a question about the image,
-  please answer the question with only the word 'true' or 'false'.
-  Question: {}
-  Answer:"""
+       self.prompt="""Given an image and the Question: {}, Answer the question with only 'true' or 'false'. Answer: """
 
   def format_prompt(self, text):
-        self.prompt = self.prompt.format(text)
-        return self.prompt
+        prompt_text = self.prompt.format(text)
+        return prompt_text

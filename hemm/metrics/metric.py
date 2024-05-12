@@ -15,3 +15,14 @@ class HEMMMetric(abc.ABC):
         :param references: References
         :return:
         """
+    
+    def lower(self, preds, gts):
+        preds = [pred.strip().lower() for pred in preds]
+        if isinstance(gts[0], str):
+            gts = [gt.strip().lower() for gt in gts]
+        elif isinstance(gts[0], list):
+            for i, gt in enumerate(gts):
+                gts[i] = [sent.strip().lower() for sent in gt]
+
+        return preds, gts
+    

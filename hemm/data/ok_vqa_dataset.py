@@ -91,6 +91,7 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 			multiple_gts = list(set(multiple_gts))
 			ground_truth_list.append(multiple_gts)
 
+
 		return predictions, ground_truth_list
 	
 	def evaluate_dataset_batched(self,
@@ -145,6 +146,7 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 				multiple_gts.append(gt_ans["answer"])
 			multiple_gts = list(set(multiple_gts))
 			ground_truth_list.append(multiple_gts)
+
 
 		predictions = self.predict_batched(images, texts, batch_size)
 

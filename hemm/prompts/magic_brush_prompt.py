@@ -1,10 +1,7 @@
 class MagicBrushPrompt:
     def __init__(self):
-       self.prompt="""
-        Edit the given image based on the provided instruction. 
-        Instruction: {}
-        """
+       self.prompt="""Edit the given image based on the provided instruction.\nInstruction: {}"""
 
     def format_prompt(self, text):
-        self.prompt = self.prompt.format(text)
-        return self.prompt
+        prompt_text = self.prompt.format(text)
+        return prompt_text
