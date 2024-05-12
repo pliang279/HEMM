@@ -34,20 +34,21 @@ def parse_args(download_dir):
 	return args
 
 class EmuModel(HEMMModel):
-	def __init__(self, device="cuda", download_dir="./"):
+	def __init__(self, device="cuda", download_dir="./", **kwargs):
 		self.device = device
+		self.download_dir = f"{download_dir}/emu/"
 		self.image_placeholder = "[IMG]" + "<image>" * 32 + "[/IMG]"
 		self.system = "You will be presented with an image: [IMG]ImageContent[/IMG]. You will be able to see the image after I provide it to you. Please answer my questions based on the given image."
-		self.args = parse_args(download_dir)
+		self.args = parse_args(self.download_dir)
 		self.args.device = torch.device(self.device)
-		self.download_dir = download_dir
 		current_dir = os.path.dirname(os.path.abspath(__file__))
 		cfg_file = os.path.join(current_dir, "emu/models/Emu-14B.json")
 		with open(cfg_file, "r", encoding="utf8") as f:
 			self.model_cfg = json.load(f)
 
 	def load_weights(self):
-		if not os.path.exists(f"{self.download_dir}/Emu-pretrain.pt"):
+		if not os.path.exists(self.download_dir):
+			shell_command(f"mkdir -p {self.download_dir}")
 			shell_command(f"wget https://huggingface.co/BAAI/Emu/resolve/main/Emu-pretrain.pt -P {self.download_dir}")
 
 		self.model = Emu(**self.model_cfg, cast_dtype=torch.float, args=self.args)

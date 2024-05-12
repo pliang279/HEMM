@@ -10,15 +10,15 @@ from hemm.utils.common_utils import shell_command
 class LlamaAdapter(HEMMModel):
 	def __init__(self,
 				device="cuda",
-				download_dir="./llama_adapter_weights",
+				download_dir="./",
 				**kwargs):
 		super().__init__()
 		self.device = device
-		self.download_dir = download_dir
+		self.download_dir = f"{download_dir}/llama_adapter_weights"
 		llama_dir = kwargs["llama_dir"]
 		self.llama_ckpt_dir = os.path.join(llama_dir, "7B")
 		self.llama_tokenzier_path = os.path.join(llama_dir, 'tokenizer.model')
-		self.model_path = f"{download_dir}/1bcbffc43484332672092e0024a8699a6eb5f558161aebf98a7c6b1db67224d1_LORA-BIAS-7B.pth"
+		self.model_path = f"{self.download_dir}/1bcbffc43484332672092e0024a8699a6eb5f558161aebf98a7c6b1db67224d1_LORA-BIAS-7B.pth"
 		self.prompt_format = (
         "Below is an instruction that describes a task. "
         "Write a response that appropriately completes the request using a single word or phrase.\n\n"
@@ -26,7 +26,8 @@ class LlamaAdapter(HEMMModel):
     )
 		
 	def load_weights(self):
-		if not os.path.exists(f"{self.download_dir}"):
+		if not os.path.exists(self.download_dir):
+			shell_command(f"mkdir -p {self.download_dir}")
 			shell_command(f"wget https://github.com/OpenGVLab/LLaMA-Adapter/releases/download/v.2.0.0/1bcbffc43484332672092e0024a8699a6eb5f558161aebf98a7c6b1db67224d1_LORA-BIAS-7B.pth -P {self.download_dir}")
 
 		ckpt = torch.load(self.model_path, map_location="cpu")

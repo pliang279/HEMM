@@ -12,7 +12,7 @@ def ref_text(text):
     return " ".join(sents).strip()
 
 class Kosmos2(HEMMModel):
-	def __init__(self, device="cuda"):
+	def __init__(self, device="cuda", download_dir="./", **kwargs):
 		super().__init__()
 		self.device = torch.device(device)
 

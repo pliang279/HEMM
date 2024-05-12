@@ -19,9 +19,9 @@ def ref_text(text):
     return " ".join(sents).strip()
 
 class OpenFlamingoModel(HEMMModel):
-    def __init__(self, device="cuda", **kwargs) -> None:
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.cache_dir = kwargs["cache_dir"]
+    def __init__(self, device="cuda", download_dir="./", **kwargs) -> None:
+        self.device = torch.device(device)
+        self.cache_dir = download_dir
 
     def load_weights(self):
         """
@@ -34,7 +34,7 @@ class OpenFlamingoModel(HEMMModel):
             lang_encoder_path="anas-awadalla/mpt-1b-redpajama-200b",
             tokenizer_path="anas-awadalla/mpt-1b-redpajama-200b",
             cross_attn_every_n_layers=1,
-            cache_dir=self.cache_dir,
+            cache_dir=self.download_dir,
         )
 
         checkpoint_path = hf_hub_download("openflamingo/OpenFlamingo-3B-vitl-mpt1b", "checkpoint.pt")

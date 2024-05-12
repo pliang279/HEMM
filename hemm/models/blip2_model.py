@@ -10,6 +10,7 @@ from tqdm import tqdm
 class BLIP2(HEMMModel):
 	def __init__(self,
 				 device="cuda",
+				 download_dir="./",
 				 **kwargs,
 				 ):
 		super().__init__()

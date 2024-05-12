@@ -30,7 +30,7 @@ def parse_args():
     return args
 
 class MiniGPT4(HEMMModel):
-    def __init__(self, device="cuda", download_dir="./"):
+    def __init__(self, device="cuda", download_dir="./", **kwargs):
         self.device = torch.device(device)
         self.download_dir = download_dir
     
