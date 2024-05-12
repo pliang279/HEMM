@@ -21,7 +21,7 @@ class Resisc45DatasetEvaluator(HEMMDatasetEvaluator):
                 **kwargs,
                 ):
         super().__init__()
-        self.dataset_dir = download
+        self.dataset_dir = download_dir
         self.kaggle_api_path = kwargs["kaggle_api_path"]
         self.prompt = Resisc45Prompt()
         self.load()
@@ -30,7 +30,7 @@ class Resisc45DatasetEvaluator(HEMMDatasetEvaluator):
         os.environ['KAGGLE_CONFIG_DIR'] = self.kaggle_api_path
         if not os.path.exists(f'{self.dataset_dir}/nwpu-data-set.zip'):
             shell_command(f'kaggle datasets download -d happyyang/nwpu-data-set -p {self.dataset_dir}')
-        if not os.path.exists(f'{self.dataset_dict}/resisc45'):
+        if not os.path.exists(f'{self.dataset_dir}/resisc45'):
             shell_command(f'unzip {self.dataset_dir}/nwpu-data-set.zip -d {self.dataset_dir}/resisc45')
         
         self.images_dir = f'{self.dataset_dir}/resisc45/NWPU Data Set/NWPU-RESISC45/NWPU-RESISC45'

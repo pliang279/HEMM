@@ -132,7 +132,7 @@ model.load_weights()
 dataset_name = 'hateful_memes'
 dataset_evaluator = load_dataset_evaluator(dataset_name,
                                             download_dir="./",
-                                            kaggle_api_directory=kaggle_api_path,
+                                            kaggle_api_path=kaggle_api_path,
                                             hf_auth_token=hf_auth_token,)
 
 ## For single data point evaluation

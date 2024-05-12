@@ -28,7 +28,7 @@ class SlakeDatasetEvaluator(HEMMDatasetEvaluator):
                 self.annotation.append(ann)
 
     def load(self):
-        if not os.path.exists("Slake1.0"):
+        if not os.path.exists(f"{self.download_dir}/Slake1.0"):
             shell_command(f"mkdir -p {self.download_dir}/Slake1.0")
             shell_command(f"wget https://huggingface.co/datasets/BoKelvin/SLAKE/raw/main/test.json -P {self.download_dir}/Slake1.0/")
             shell_command(f"wget https://huggingface.co/datasets/BoKelvin/SLAKE/resolve/main/imgs.zip -P {self.download_dir}/Slake1.0/")

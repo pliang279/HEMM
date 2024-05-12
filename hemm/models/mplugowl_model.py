@@ -69,3 +69,6 @@ class MplugOwl(HEMMModel):
 		sentence = self.tokenizer.decode(res.tolist()[0], skip_special_tokens=True)
 
 		return sentence	
+	
+	def generate_batch(model=None, batch_size=8):
+		pass
