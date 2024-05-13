@@ -34,7 +34,7 @@ class OpenFlamingoModel(HEMMModel):
             lang_encoder_path="anas-awadalla/mpt-1b-redpajama-200b",
             tokenizer_path="anas-awadalla/mpt-1b-redpajama-200b",
             cross_attn_every_n_layers=1,
-            cache_dir=self.download_dir,
+            cache_dir=self.cache_dir,
         )
 
         checkpoint_path = hf_hub_download("openflamingo/OpenFlamingo-3B-vitl-mpt1b", "checkpoint.pt")

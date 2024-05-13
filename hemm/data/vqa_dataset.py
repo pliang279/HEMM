@@ -61,15 +61,18 @@ class VQADatasetEvaluator(HEMMDatasetEvaluator):
         
         ground_truth = []
         predictions = []
+        
         for data_dict in tqdm(question_file['questions'], total=len(question_file['questions'])):
             question = data_dict['question']
             image_path = os.path.join(image_dir, "abstract_v002_val2015_0000000{}".format(str(data_dict['image_id']))+'.png')
             ground_truth_answer = self.get_ground_truth_answer(annotation_file, data_dict['question_id'])
             text = self.get_prompt(question)
+            
             output = model.generate(text, image_path)
+            
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
-        
+
         return predictions, ground_truth
     
     def evaluate_dataset_batched(self,

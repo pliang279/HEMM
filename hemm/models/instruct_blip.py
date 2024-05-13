@@ -9,7 +9,7 @@ from lavis.models import load_model_and_preprocess
 class InstructBlip(HEMMModel):
 	def __init__(self, device="cuda", download_dir="./", **kwargs):
 		super().__init__()
-		self.model_type = kwargs["model_type"]
+		self.model_type = "flant5xl"
 		self.device = torch.device(device)
 
 	def load_weights(self):

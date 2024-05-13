@@ -61,13 +61,15 @@ class Screen2WordsDatasetEvaluator(HEMMDatasetEvaluator):
 
         data_file = open(self.test_file, 'r')
         data_lines = data_file.readlines()
-
+        
         for line in tqdm(data_lines, total=len(data_lines)):
             file_name = line.strip()
             image_path = os.path.join(self.images_dir, file_name + '.jpg')
             ground_truth_answer = self.get_ground_truth(file_name)
             text = self.get_prompt()
+            
             output = model.generate(text, image_path)
+            
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
 

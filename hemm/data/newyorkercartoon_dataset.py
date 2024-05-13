@@ -48,6 +48,7 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
         
         ground_truth = []
         outputs = []
+        
         for img in tqdm(os.listdir(self.image_dir), total=len(os.listdir(self.image_dir))):
             img_id = img.split('.jpg')[0]
             img_path = os.path.join(self.image_dir, img)
@@ -66,7 +67,9 @@ class NewYorkerCartoonDatasetEvaluator(HEMMDatasetEvaluator):
             
             for i in range(len(captions)):
                 text = self.get_prompt(captions[i])
+                
                 output = model.generate(text, img_path)
+                
                 outputs.append(output)
 
                 if i == 0:

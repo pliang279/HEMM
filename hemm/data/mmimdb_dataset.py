@@ -5,7 +5,6 @@ from typing import Optional, Union, List
 from PIL import Image
 import torch
 from tqdm import tqdm
-
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.mmimdb_prompt import MMIMDBPrompt
@@ -49,17 +48,19 @@ class MMIMDBDatasetEvaluator(HEMMDatasetEvaluator):
         ground_truth = []
 
         ann_files = json.load(open(self.annotation_file))["test"]
-
+        
         for row in tqdm(ann_files, total=len(ann_files)):
             ann_id = row.strip()
             image_path = f"{self.image_dir}/{ann_id}.jpeg"
             data = json.load(open(f"{self.dataset_dir}/annotations/{ann_id}.json"))
             text = self.get_prompt(data["plot"][0])
             label = ", ".join(data["genres"])
+            
             output = model.generate(text, image_path)
+            
             predictions.append(output)
             ground_truth.append(label)
-        
+            
         return predictions, ground_truth
     
     def evaluate_dataset_batched(self,

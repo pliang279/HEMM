@@ -40,7 +40,7 @@ class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
         ground_truth = []
         texts = []
         total_samples = 4 * len(self.dataset)
-        cnt = 0
+        
         for data in tqdm(self.dataset, total=len(self.dataset)):
             for pair in ((0,0), (0,1), (1,0), (1,1)):
                 image = data['image_'+str(pair[0])]
@@ -53,14 +53,10 @@ class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
                     image.save(f)
                     image_path = "current_image.jpg"
                 texts.append(question)
+                
                 output = model.generate(question, image_path)
+                
                 predictions.append(output)
-                cnt += 1
-                if cnt == 100:
-                    break
-
-            if cnt == 100:
-                break 
 
         return predictions, ground_truth
 

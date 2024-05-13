@@ -7,7 +7,6 @@ import torch
 from datasets import load_dataset
 import subprocess
 from tqdm import tqdm
-
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.metrics.metric import HEMMMetric
 from hemm.prompts.memecaps_prompt import MemeCapsPrompt
@@ -49,6 +48,7 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
 		annotation_file = json.load(open(self.annotation_path))
 		predictions = []
 		ground_truth = []
+
 		for index, data_dict in tqdm(enumerate(annotation_file), total=len(annotation_file)):
 			image_path = f"{self.images}/{data_dict['img_fname'].strip()}"
 			image_desc = data_dict["img_captions"][0]
@@ -58,7 +58,7 @@ class MemeCapsDatasetEvaluator(HEMMDatasetEvaluator):
 			ground_truth.append(gt_caption)
 			output = model.generate(text, image_path)
 			predictions.append(output)
-
+				
 		return predictions, ground_truth
 
 	def evaluate_dataset_batched(self,

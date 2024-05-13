@@ -56,10 +56,12 @@ class UCMercedDatasetEvaluator(HEMMDatasetEvaluator):
             image_path = os.path.join(images_dir, row['Filename'])
             ground_truth_answer = row['ClassName']
             text = self.get_prompt()
+            
             output = model.generate(text, image_path)
+            
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
-    
+         
         return predictions, ground_truth
     
     def evaluate_dataset_batched(self,

@@ -64,10 +64,12 @@ class Resisc45DatasetEvaluator(HEMMDatasetEvaluator):
             image_path = os.path.join(self.images_dir, data[1], data[0])
             ground_truth_answer = data[1]
             text = self.get_prompt()
+            
             output = model.generate(text, image_path)
+            
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
-        
+            
         return predictions, ground_truth
 
     def evaluate_dataset_batched(self,

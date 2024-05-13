@@ -35,6 +35,7 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
         
         predictions = []
         ground_truth = []
+        
         for item in tqdm(self.dataset, total=len(self.dataset)):
             if not item['image']:
                 continue
@@ -59,7 +60,7 @@ class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):
             
             ans = model.generate(question, image_path)
             predictions.append(ans)
-        
+            
         return predictions, ground_truth
     
     def evaluate_dataset_batched(self,

@@ -5,7 +5,6 @@ import torch
 from tqdm import tqdm
 import subprocess
 from glob import glob
-
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.inat_prompt import INATPrompt
 from hemm.utils.common_utils import shell_command
@@ -46,17 +45,15 @@ class INATDatasetEvaluator(HEMMDatasetEvaluator):
 
         ground_truth = []
         predictions = []
-        cnt = 0
+
         for idx in tqdm(range(len(all_images)), total=len(all_images)):
             image_path = all_images[idx]
             text = self.get_prompt()
-
             output = model.generate(text, image_path)
 
             gt_name = " ".join(all_images[idx].split("/")[-2].split("_")[-2:])
             ground_truth.append(gt_name.lower())
             predictions.append(output)
-
 
         return predictions, ground_truth
      
