@@ -6,6 +6,7 @@ import torch
 from tqdm import tqdm
 import pandas as pd
 import requests
+
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.visualgenome_prompt import visualgenomeprompt
@@ -43,7 +44,6 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 						) -> None:
 		predictions = []
 		ground_truth = []
-
 		f = open(self.questions_json_path)
 		data_vqa = json.load(f)
 		for i in tqdm(range(len(data_vqa)), total=len(data_vqa)):
@@ -65,6 +65,7 @@ class VisualGenomeEvaluator(HEMMDatasetEvaluator):
 			for j in range(len(qas)):
 				question=qas[j]['question']
 				question_pmt=self.get_prompt(question)
+				
 				output = model.generate(question_pmt, image_b)
 				predictions.append(output)
 				ground_truth.append(qas[j]['answer'])

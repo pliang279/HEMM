@@ -46,6 +46,7 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
         json_file = json.load(open(self.annotation_file, 'r'))
         predictions = []
         ground_truth = []
+        
         for index, image_dict in tqdm(enumerate(json_file['images']), total=len(json_file['images'])):
             fn = image_dict["file_name"]
             captions = []
@@ -56,8 +57,12 @@ class NoCapsDatasetEvaluator(HEMMDatasetEvaluator):
             text = self.get_prompt()
 
             image_path = os.path.join(self.dataset_dir, fn)
+            
             output = model.generate(text, image_path)
+            
             predictions.append(output)
+            
+        
 
         return predictions, ground_truth
  

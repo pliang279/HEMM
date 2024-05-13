@@ -6,7 +6,7 @@ import torch
 import subprocess
 from tqdm import tqdm
 import pandas as pd
-import random 
+import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.face_emotion_prompt import FaceEmotionPrompt
@@ -62,7 +62,7 @@ class FaceEmotionDatasetEvaluator(HEMMDatasetEvaluator):
         data_dict_list = list(data_dict.items())
         random.shuffle(data_dict_list)
         data_dict_shuffled = dict(data_dict_list)
- 
+
         for img, gt in tqdm(data_dict_shuffled.items(), total=len(data_dict_shuffled.keys())):
             image_path = os.path.join(self.data_path, gt, img)
             ground_truth.append(gt)

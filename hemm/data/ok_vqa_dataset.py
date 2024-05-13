@@ -10,6 +10,7 @@ from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.okqvqa_prompt import OKVQAPrompt
 
+
 class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 	def __init__(self,
 				download_dir="./",
@@ -80,6 +81,7 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 			if not os.path.exists(image_path):
 				continue
 			text = self.get_prompt(qs[i])
+			
 			output = model.generate(text, image_path)
 			predictions.append(output)
 
@@ -90,7 +92,6 @@ class OKVQADatasetEvaluator(HEMMDatasetEvaluator):
 			
 			multiple_gts = list(set(multiple_gts))
 			ground_truth_list.append(multiple_gts)
-
 
 		return predictions, ground_truth_list
 	

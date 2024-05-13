@@ -45,20 +45,25 @@ class NLVRDatasetEvaluator(HEMMDatasetEvaluator):
         predictions = []
         ground_truth = []
         outputs = []        
-        cnt = 0
+
         raw_images = []
         texts = []
+        
 
         for line in tqdm(self.sentences, total=len(self.sentences)):
             ann = json.loads(line)
             img_path = os.path.join(self.image_dir, f'{ann["directory"]}/dev-{ann["identifier"]}-0.png')
             sentence = ann['sentence']
             text = self.get_prompt(sentence)
+            
             output = model.generate(text, img_path)
+            
             outputs.append(output)
             
             label = ann['label']
             ground_truth.append(label.lower())
+            
+        
 
         return outputs, ground_truth
     

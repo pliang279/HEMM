@@ -8,7 +8,6 @@ from datasets import load_dataset
 import pandas as pd
 import ast
 from tqdm import tqdm
-
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.irfl_prompt import IRFLPrompt
 from hemm.utils.common_utils import shell_command
@@ -50,8 +49,9 @@ class IRFLDatasetEvaluator(HEMMDatasetEvaluator):
                 texts.append(question)
                 answer = self.model.generate(question, image_path)
                 outputs.append(answer)
-
+        
             ground_truth += ["no", "no", "no", "yes"]
+        
         return outputs, ground_truth
 
     def get_image_path_from_hugginface_cache(self, image_name):

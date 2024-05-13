@@ -5,7 +5,6 @@ from PIL import Image
 import torch
 from tqdm import tqdm
 import subprocess
-
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.prompts.hateful_memes_prompt import HatefulMemesPrompt
 from hemm.utils.common_utils import shell_command
@@ -56,11 +55,13 @@ class HatefulMemesDatasetEvaluator(HEMMDatasetEvaluator):
             json_obj = json.loads(json_list[index])
             text = self.get_prompt(json_obj['text'])
             output = model.generate(text, os.path.join(image_dir, json_obj['img']))
+
             outputs.append(output)
             if json_obj["label"]:
                 ground_truth.append("yes")
             else:
                 ground_truth.append("no")
+            
 
         return outputs, ground_truth
      

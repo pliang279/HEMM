@@ -44,14 +44,18 @@ class PathVQADatasetEvaluator(HEMMDatasetEvaluator):
         
         ground_truth = []
         predictions = []
+        
         for index, data_dict in tqdm(enumerate(annotation_file), total=len(annotation_file)):
             image_path = os.path.join(images_dir, data_dict['image'] + '.jpg')
             question = data_dict['question']
             ground_truth_answer = data_dict["answer"]
             text = self.get_prompt(question)
+            
             output = model.generate(text, image_path)
+            
             predictions.append(output)
             ground_truth.append(ground_truth_answer)
+            
         
         return predictions, ground_truth
 

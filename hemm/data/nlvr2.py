@@ -37,6 +37,7 @@ class NLVR2evaluator(HEMMDatasetEvaluator):
         gt=[]
         preds=[]
         texts = []
+        
         for i in tqdm(range(len(self.train_json)), total=len(self.train_json)):
             left_url=self.train_json[i]['left_url']
             right_url=self.train_json[i]['right_url']
@@ -58,11 +59,13 @@ class NLVR2evaluator(HEMMDatasetEvaluator):
               continue
             text = self.get_prompt(sentence)
             texts.append(text)
+            
             answer = model.generate(text, image)
+            
             answer =''.join(filter(str.isalpha, answer.lower()))
             preds.append(answer)
             gt.append(label)
-
+            
         return preds, gt
     
     def evaluate_dataset_batched(self, model=None, batch_size=None):

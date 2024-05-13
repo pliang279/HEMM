@@ -90,6 +90,7 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 		predictions = []
 		ground_truth = []
 		outputs = []
+
 		for i in tqdm(range(len(self.annotations)), total=len(self.annotations)):
 			ann = literal_eval(self.annotations[i])
 			question = self.fix_tokenization(ann["question"], ann["objects"])
@@ -115,13 +116,12 @@ class VCRDatasetEvaluator(HEMMDatasetEvaluator):
 			self.draw_segments(img, segments)
 
 			img = Image.fromarray(img)
+			
 			output = model.generate(prompt, img)
 			outputs.append(output)
 			ground_truth.append(new_answer_choices[ann["answer_label"]])
 			predictions.append(output)
-			if i == 100:
-				break
-			
+						
 		return outputs, ground_truth
 
 	def evaluate_dataset_batched(self,

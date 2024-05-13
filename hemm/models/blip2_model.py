@@ -14,7 +14,7 @@ class BLIP2(HEMMModel):
 				 **kwargs,
 				 ):
 		super().__init__()
-		self.model_type = kwargs["model_type"]
+		self.model_type = "pretrain_flant5xxl"
 		self.device = device
 
 	def load_weights(self):

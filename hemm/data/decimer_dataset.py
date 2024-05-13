@@ -5,6 +5,7 @@ import torch
 from tqdm import tqdm
 import pickle
 import random
+
 from hemm.data.dataset import HEMMDatasetEvaluator
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.decimer_prompt import DecimerPrompt
@@ -60,7 +61,7 @@ class DecimerDatasetEvaluator(HEMMDatasetEvaluator):
 			predictions.append(output)
 			ground_truth.append(label)
 		
-		return predictions, ground_truth 
+		return predictions, ground_truth
 	
 	def evaluate_dataset_batched(self,
 						 model,

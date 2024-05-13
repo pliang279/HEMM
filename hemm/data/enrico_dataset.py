@@ -56,7 +56,6 @@ class EnricoDatasetEvaluator(HEMMDatasetEvaluator):
             output = model.generate(text, image_path)
             predictions.append(output)
             ground_truth.append(label)
-        
         return predictions, ground_truth
     
     def evaluate_dataset_batched(self,
