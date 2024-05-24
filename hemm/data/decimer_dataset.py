@@ -7,6 +7,7 @@ import pickle
 import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
+
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.decimer_prompt import DecimerPrompt
 

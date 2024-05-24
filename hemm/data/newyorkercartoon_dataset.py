@@ -9,6 +9,7 @@ import subprocess
 from tqdm import tqdm
 
 from hemm.data.dataset import HEMMDatasetEvaluator
+
 from hemm.prompts.newyorkercartoon_prompt import NewYorkerCartoonPrompt
 from hemm.utils.common_utils import shell_command
 

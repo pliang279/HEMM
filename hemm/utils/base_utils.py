@@ -8,7 +8,7 @@ from hemm.data import newyorkercartoon_dataset, hateful_memes_dataset, nocaps_da
                         nlvr2, nlvr_dataset, faceemotion_dataset, \
                         visualgenome_dataset, screen2words_dataset, flickr30k_dataset, \
                         decimer_dataset, enrico_dataset, inat_dataset, magic_brush_dataset, mmimdb_dataset, \
-                        open_path_dataset, slake_dataset
+                        open_path_dataset, slake_dataset, lncoco_dataset
                         
 def load_model(model_key, download_dir="./", **kwargs):
     model_dict = {
@@ -64,6 +64,7 @@ def load_dataset_evaluator(dataset_key, download_dir="./", kaggle_api_path=None,
         'magic_brush': magic_brush_dataset.MagicBrushDatasetEvaluator,
         'mmimdb': mmimdb_dataset.MMIMDBDatasetEvaluator, 
         "open_path": open_path_dataset.OpenPathDatasetEvaluator,
+        'lncoco': lncoco_dataset.LNCOCODatasetEvaluator,
     }
     dset = dataset_dict[dataset_key](
         download_dir=download_dir,

@@ -10,9 +10,11 @@ from huggingface_hub import snapshot_download
 
 from hemm.models.model import HEMMModel
 from hemm.models.emu.models.modeling_emu import Emu
+from hemm.models.emu.models.pipeline import EmuGenerationPipeline
 from hemm.models.emu.utils import process_img
 from hemm.utils.common_utils import shell_command
 from tqdm import tqdm
+
 
 def parse_args(download_dir):
 	parser = argparse.ArgumentParser()
@@ -36,6 +38,11 @@ def parse_args(download_dir):
 class EmuModel(HEMMModel):
 	def __init__(self, device="cuda", download_dir="./", **kwargs):
 		self.device = device
+		if "mode" not in kwargs:
+			self.mode = "text"
+		else:
+			self.mode = kwargs["mode"]
+		
 		self.download_dir = f"{download_dir}/emu/"
 		self.image_placeholder = "[IMG]" + "<image>" * 32 + "[/IMG]"
 		self.system = "You will be presented with an image: [IMG]ImageContent[/IMG]. You will be able to see the image after I provide it to you. Please answer my questions based on the given image."
@@ -51,14 +58,26 @@ class EmuModel(HEMMModel):
 			shell_command(f"mkdir -p {self.download_dir}")
 			shell_command(f"wget https://huggingface.co/BAAI/Emu/resolve/main/Emu-pretrain.pt -P {self.download_dir}")
 
-		self.model = Emu(**self.model_cfg, cast_dtype=torch.float, args=self.args)
-		ckpt = torch.load(self.args.ckpt_path, map_location="cpu")
-		if 'module' in ckpt:
-			ckpt = ckpt['module']
+		if not os.path.exists(f"{self.download_dir}/pretrain/"):
+			snapshot_download(repo_id="BAAI/Emu", allow_patterns="pretrain/*", local_dir=self.download_dir)
 
-		msg = self.model.load_state_dict(ckpt, strict=False)
-		self.model = self.model.eval()
-		self.model = self.model.to(self.args.device).to(torch.bfloat16)
+		if self.mode == "text":
+			self.model = Emu(**self.model_cfg, cast_dtype=torch.float, args=self.args)
+			ckpt = torch.load(self.args.ckpt_path, map_location="cpu")
+			if 'module' in ckpt:
+				ckpt = ckpt['module']
+
+			msg = self.model.load_state_dict(ckpt, strict=False)
+			self.model = self.model.eval()
+			self.model = self.model.to(self.args.device).to(torch.bfloat16)
+		
+		else:
+			self.pipeline = EmuGenerationPipeline.from_pretrained(
+    	    path=f"{self.download_dir}/pretrain",
+        	args=self.args)
+
+			self.pipeline = self.pipeline.bfloat16()
+			self.pipeline = self.pipeline.to(self.device)
 
 	def get_image_tensor(self, image):
 		"""
@@ -130,12 +149,20 @@ class EmuModel(HEMMModel):
 		
 	def generate_image(self,
 					   text,
-					   image,
+					   image=None,
 					   ):
-		image, safety = self.image_generation_pipeline(
-			[text],
-			height=512,
-			width=512,
-			guidance_scale=7.5,
-		)
-		return image
+		if image is not None:		
+			img, safety = self.pipeline(
+				[text, image],
+				height=512,
+				width=512,
+				guidance_scale=7.5,
+			)
+		else:
+			img, safety = self.pipeline(
+				[text],
+				height=512,
+				width=512,
+				guidance_scale=7.5,
+			)
+		return img

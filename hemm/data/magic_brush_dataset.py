@@ -6,6 +6,7 @@ import torch
 from tqdm import tqdm
 
 from hemm.data.dataset import HEMMDatasetEvaluator
+
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.magic_brush_prompt import MagicBrushPrompt
 from huggingface_hub import snapshot_download
@@ -47,6 +48,7 @@ class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
         texts = []
         annotations = json.load(open(self.annotation_file))
         
+        cnt = 0
         for img_id in tqdm(annotations, total=len(annotations)):
             ann = annotations[img_id]
             for sample in ann:
@@ -57,6 +59,12 @@ class MagicBrushDatasetEvaluator(HEMMDatasetEvaluator):
                 pred_img = model.generate_image(text, input_img)
                 predictions.append(pred_img)
                 ground_truth.append(gt_img)
+                cnt += 1
+                if cnt == 100:
+                    break
+            
+            if cnt == 100:
+                break
 
         return predictions, ground_truth
     
