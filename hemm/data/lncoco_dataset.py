@@ -60,7 +60,7 @@ class LNCOCODatasetEvaluator(HEMMDatasetEvaluator):
             pred_img = model.generate_image(text)
             predictions.append(pred_img)
             ground_truth.append(gt_img)
-
+            
         return predictions, ground_truth
     
     def evaluate_dataset_batched(self, model=None, batch_size=None):

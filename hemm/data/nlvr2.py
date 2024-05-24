@@ -13,6 +13,7 @@ from tqdm import tqdm
 import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
+
 from hemm.utils.common_utils import shell_command
 
 class NLVR2evaluator(HEMMDatasetEvaluator):

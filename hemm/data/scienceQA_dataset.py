@@ -9,6 +9,7 @@ from tqdm import tqdm
 import random
 
 from hemm.data.dataset import HEMMDatasetEvaluator
+
 from hemm.prompts.scienceqa_prompt import ScienceQAPrompt
 
 class ScienceQADatasetEvaluator(HEMMDatasetEvaluator):

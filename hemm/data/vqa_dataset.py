@@ -6,6 +6,7 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 from hemm.data.dataset import HEMMDatasetEvaluator
+
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.vqa_prompt import VQAPrompt
 import ast

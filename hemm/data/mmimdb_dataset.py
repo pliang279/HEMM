@@ -6,6 +6,7 @@ from PIL import Image
 import torch
 from tqdm import tqdm
 from hemm.data.dataset import HEMMDatasetEvaluator
+
 from hemm.utils.common_utils import shell_command
 from hemm.prompts.mmimdb_prompt import MMIMDBPrompt
 from huggingface_hub import snapshot_download

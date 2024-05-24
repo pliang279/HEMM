@@ -6,6 +6,7 @@ import torch
 from tqdm import tqdm
 import subprocess
 from hemm.data.dataset import HEMMDatasetEvaluator
+
 from hemm.prompts.hateful_memes_prompt import HatefulMemesPrompt
 from hemm.utils.common_utils import shell_command
 

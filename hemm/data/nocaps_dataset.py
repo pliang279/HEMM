@@ -9,6 +9,7 @@ import subprocess
 from tqdm import tqdm
 
 from hemm.data.dataset import HEMMDatasetEvaluator
+
 from hemm.prompts.nocaps_prompt import NoCapsPrompt
 from hemm.utils.common_utils import shell_command
 from huggingface_hub import snapshot_download

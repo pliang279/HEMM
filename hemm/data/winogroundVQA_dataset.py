@@ -10,6 +10,7 @@ from datasets import load_dataset
 from hemm.prompts.winoground_prompt import WinogroundPrompt
 from hemm.data.dataset import HEMMDatasetEvaluator
 
+
 class WinogroundDatasetEvaluator(HEMMDatasetEvaluator):
     def __init__(self,
                 download_dir="./",
