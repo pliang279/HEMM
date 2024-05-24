@@ -48,4 +48,5 @@ class BLIP2(HEMMModel):
 			answers += generated_text
 				
 		return answers
-	
+
+

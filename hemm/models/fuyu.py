@@ -7,7 +7,7 @@ from hemm.models.model import HEMMModel
 from transformers import FuyuProcessor, FuyuForCausalLM
 
 class Fuyu(HEMMModel):
-	def __init__(self, device):
+	def __init__(self, device="cuda", download_dir="./", **kwargs):
 		super().__init__()
 		self.device = torch.device(device)
 
@@ -20,16 +20,17 @@ class Fuyu(HEMMModel):
 				text: Optional[str],
 				image,
 			) -> str:
+
 		if not isinstance(image, Image.Image):
 			raw_image = Image.open(image).convert("RGB")
 		else:
 			raw_image = image
-
+		
 		inputs = self.processor(text=text, images=raw_image, return_tensors="pt").to(self.device)
 		generation_output = self.model.generate(**inputs, max_new_tokens=100)
 		generation_text = self.processor.batch_decode(generation_output[:, -100:], skip_special_tokens=True)
 		prediction = generation_text[0].split("\x04")[-1].strip()
-
+		
 		return prediction
 			
 	def get_image_tensor(self, image):
