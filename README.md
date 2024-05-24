@@ -122,7 +122,7 @@ pip install -r requirements.txt
 cd HEMM
 ```
 
-Note: We use some datasets from Huggingface and Kaggle. Make sure to get your api key from [Hugginface](https://huggingface.co/docs/hub/en/security-tokens) and [Kaggle](https://github.com/Kaggle/kaggle-api). Provide the Huggingface Authorization token (hf_auth_token) and the path (kaggle_api_path) of the directory where kaggle.json is stored in the ```load_dataset_evaluator```
+Note: We use some datasets from Huggingface and Kaggle. Make sure to get your api key from [Huggingface](https://huggingface.co/docs/hub/en/security-tokens) and [Kaggle](https://github.com/Kaggle/kaggle-api). Provide the Huggingface Authorization token (hf_auth_token) and the path (kaggle_api_path) of the directory where kaggle.json is stored in the ```load_dataset_evaluator```
 
 Sample code:
 
