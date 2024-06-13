@@ -1,6 +1,6 @@
 dataset_categories = {
     "use_case": {
-        "multimedia": ["vqa", "mmimdb", "visualgen", "okvqa", "flickr30k", "vcr", "nocaps", "nlvr", "GQA", "nlvr2", "irfl"],
+        "multimedia": ["vqa", "mmimdb", "visualgen", "okvqa", "flickr30k", "vcr", "nocaps", "nlvr", "GQA", "nlvr2", "irfl", "winoground"],
         "affect": ["newyorkercartoon", "hatefulmemes", "memecaps", "memotion", "faceemotion"],
         "science": ["scienceqa", "decimer", "inat", "ucmerced", "resisc45"],
         "health": ["pathvqa", "slake", "vqarad", "plip"],
@@ -59,10 +59,10 @@ model_categories = {
     },
     "modalities": {
         "interleaved": ["emu", "openflamingo", "gemini", "kosmos2", "fuyu"],
-        "separate": ["blip2", "instruct_blip", "minigpt4", "llama_adapter", "mplugowl", "gptv"],
+        "separate": ["blip2", "instruct_blip", "minigpt4", "llama_adapter", "mplugowl"],
     },
     "training_type": {
-        "end_to_end": ["emu", "fuyu", "gptv", "gemini", "kosmos2"],
+        "end_to_end": ["emu", "fuyu", "kosmos2"],
         "modular_fine_tune": ["blip2", "instruct_blip", "minigpt4", "openflamingo", "llama_adapter", "mplugowl"],
     },
     "pre_training_data_size": {
@@ -82,7 +82,7 @@ model_categories = {
     }
 }
 
-tota_number_of_params = {
+total_number_of_params = {
     "blip2": 12.1,
     "instruct_blip": 4,
     "minigpt4": 13, 
@@ -91,7 +91,52 @@ tota_number_of_params = {
     "mplugowl": 7.2,
     "kosmos2": 1.6,
     "fuyu": 9.3,
-    "gemini": 20,
-    "gptv": 20, 
+    "gemini": 600,
+    "gptv": 600, 
     "llama_adapter": 7,
+}
+
+model_to_name = {
+    "minigpt4": "MiniGPT-4",
+    "fuyu": "Fuyu-8B",
+    "emu": "Emu",
+    "gptv": "GPT-4V (estimated)",
+    "gemini": "Gemini 1.0 Pro Vision (estimated)",
+    "openflamingo": "OpenFlamingo-3B",
+    "blip2": "BLIP-2",
+    "instruct_blip": "InstructBLIP",
+    "kosmos2": "Kosmos-2",
+    "mplugowl": "mPLUG-Owl",
+    "llama_adapter": "LLaMA-Adapter V2"
+}
+
+dset_to_name = {
+    "hatefulmemes": "Hateful Memes",
+    "memotion": "Memotion",
+    "winoground": "Winoground",
+    "faceemotion": "Face Emotion",
+    "vqa": "VQA v1",
+    "okvqa": "OK-VQA",
+    "nlvr": "NLVR",
+    "nlvr2": "NLVR2",
+    "decimer": "Decimer",
+    "enrico": "Enrico",
+    "screen2words": "Screen2Words",
+    "GQA": "GQA",
+    "visualgen": "VisualGenome",
+    "memecaps": "MemeCap",
+    "scienceqa": "ScienceQA",
+    "mmimdb": "MM-IMDb",
+    "nocaps": "Nocaps",
+    "slake": "SLAKE", 
+    "pathvqa": "PathVQA",
+    "ucmerced": "UC Merced",
+    "resisc45": "RESISC45",
+    "vqarad": "VQA-RAD",
+    "flickr30k": "Flickr30k",
+    "newyorkercartoon": "New Yorker Cartoon",
+    "inat": "iNaturalist",
+    "vcr": "VCR",
+    "plip": "OpenPath",
+    "irfl": "IRFL",
 }

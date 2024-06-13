@@ -6,13 +6,13 @@ from scipy.stats import ttest_rel
 from utils import *
 from categories import *
 
-df = pd.read_csv("/Users/akshay/hemm_res/small_res/eval_100/bartscore_100_samples.csv")
+df = pd.read_csv("./bartscore_100_samples.csv")
 df = df.drop(columns=["magicbrush"])
 
 df = df.fillna(0)
-print(df.head())
 datasets = list(df.columns[2:])
 mode = "bart"
+
 all_results, model_analysis = results_on_dsets(df, datasets, mode=mode)
 
 dset_scores = []
@@ -21,11 +21,7 @@ for dset, score in all_results.items():
 
 dset_scores.sort()
 
-for i in range(len(dset_scores)):
-    print(dset_scores[i][1], dset_scores[i][0])
-
-print("*"*100)
-
+print("Model Average Scores")
 model_avg_scores = {}
 for model, scores in model_analysis.items():
     avg_sc = 0
@@ -35,60 +31,140 @@ for model, scores in model_analysis.items():
     model_avg_scores[model] = avg_sc
     print(f"{model}: {avg_sc}")
 
-for dset, val in model_analysis["gptv"].items():
-    print("#"*100)
-
-    print(dset)
-    print("GPTV", val)
-    print("Gemini", model_analysis["gemini"][dset])
-    print("BLIP2", model_analysis["blip2"][dset])
-    print("Instruct BLIP", model_analysis["instruct_blip"][dset])
-    print("Fuyu", model_analysis["fuyu"][dset])
-
+print("Category scores")
 for dimension in model_categories:
     print(dimension)
     for group in model_categories[dimension]:
         models = model_categories[dimension][group]
-        avg_sc = 0
+        avg_sc = []
         for model in models:
-            avg_sc += model_avg_scores[model]
-        avg_sc /= len(models)
-        print(f"Average score for {group} is {avg_sc:.4f}")
+            if model not in model_avg_scores:
+                continue
+        
+            avg_sc.append(model_avg_scores[model])
+        
+        if len(avg_sc) > 0:
+            avg_sc = sum(avg_sc) / len(avg_sc)
+            print(f"Average score for {group} is {avg_sc:.4f}")
 
-dsets = dataset_categories["use_case"]["science"]
 
-for dset in dsets:
-    print(dset)
-    for model in model_analysis:
-        print(f"{model:}", model_analysis[model][dset])
+models1 = model_categories["diversity"]["diverse"]
+models2 = model_categories["diversity"]["non_diverse"]
 
-    print("*"*100)
+exkn = []
+noexkn = []
+for dset in datasets:
+    scores1 = []
+    scores2 = []
+    for model in models1:
+        if model not in model_analysis:
+            continue
+        if dset not in model_analysis[model]:
+            continue
+        scores1.append(model_analysis[model][dset])
+    for model in models2:
+        if model not in model_analysis:
+            continue
+        if dset not in model_analysis[model]:
+            continue
+        scores2.append(model_analysis[model][dset])
+    
+    scores1 = np.array(scores1)
+    scores2 = np.array(scores2)
+    exkn.append(scores1.mean())
+    noexkn.append(scores2.mean())
+
+
+exkn = np.array(exkn)
+noexkn = np.array(noexkn)
+print(exkn.min(), exkn.max())
+print(noexkn.min(), noexkn.max())
+print(exkn.mean(), noexkn.mean())
+t_stat, p_val = ttest_rel(exkn, noexkn)
+std1 = exkn.std()
+std2 = noexkn.std()
+print("Standard Deviation for Diverse Models",  std1)
+print("Standard Deviation for Non Diverse Models",  std2)
+print("P-value", p_val)
+
+
+dset1 = dataset_categories["information_flow"]["querying"]
+dset2 = dataset_categories["information_flow"]["fusion"]
+exkn = []
+noexkn = []
+
+for model in model_analysis:
+    scores1 = []
+    scores2 = []
+    for dset in dset1:
+        if dset not in model_analysis[model]:
+            continue
+        scores1.append(model_analysis[model][dset])
+
+    for dset in dset2:
+        if dset not in model_analysis[model]:
+            continue
+        scores2.append(model_analysis[model][dset])
+    
+    scores1 = np.array(scores1)
+    scores2 = np.array(scores2)
+    exkn.append(scores1.mean())
+    noexkn.append(scores2.mean())
+    # print(model, scores1.mean(), scores2.mean())
+
+exkn = np.array(exkn)
+noexkn = np.array(noexkn)
+t_stat, p_val = ttest_rel(exkn, noexkn)
+std1 = exkn.std()
+std2 = noexkn.std()
+print("Standard Deviation for Querying Datasets",  std1)
+print("Standard Deviation for Fusion Datasets",  std2)
+print("P-value", p_val)
 
 # plot for performance vs pre-training data size
-# num_params_performance = []
-# model_names = []
-# for model in model_avg_scores:
-#     model_names.append(model)
-#     num_params_performance.append((tota_number_of_params[model], model_avg_scores[model]))
+plot_clusters(None, model_avg_scores)
 
+plt.style.use('seaborn-darkgrid')
+plt.figure(figsize=(35, 40))
+params = {'text.usetex': False, 'mathtext.fontset': 'stixsans'}
+plt.rcParams.update(params)
 
-# plt.style.use('seaborn-darkgrid')
-# plt.figure(figsize=(12, 6))
-# plt.scatter([x[0] for x in num_params_performance], [x[1] for x in num_params_performance])
-# plt.xlabel('Number of Parameters')
-# plt.ylabel('Average Scores')
-# plt.title('Performance vs Number of Parameters')
-# plt.xticks(rotation=45)
-# for i, txt in enumerate(model_names):
-#     plt.annotate(txt, (num_params_performance[i][1], num_params_performance[i][0]))
+bar_values = []
+legend_labels = ["Multimedia", "Affect", "Science", "Health", "HCI"]
+color_mapping = {
+    "Multimedia": "#0a9396",  
+    "Affect": "#ee9b00",  
+    "Science": "#bdb2ff",  
+    "Health": "#7f7f7f",  
+    "HCI": "#e34a33"  
+}
 
-# plt.show()
+legend_colors = [color_mapping[label] for label in legend_labels]
 
+for i, legend in enumerate(legend_labels):
+    labels = dataset_categories["use_case"][legend.lower()]
+    bar_values = []
+    for dset in labels:
+        scores = []
+        for model in model_analysis:
+            if dset not in model_analysis[model]:
+                continue
+            scores.append(model_analysis[model][dset])
+        avg_sc = sum(scores) / len(scores)
+        bar_values.append(avg_sc)
+    labels = [dset_to_name[label] for label in labels]
+    plt.barh(labels, bar_values, color=legend_colors[i], label=legend)
 
-# for dimension in dataset_categories:
-#     print(dimension)
-#     for group in dataset_categories[dimension]:
-#         dsets = dataset_categories[dimension][group]
-#         avg_score = avg(model_analysis, dsets)
-#         print(f"Average score for {group} is {avg_score.mean():.4f}")
-        
+plt.ylabel('Datasets', fontsize=50)
+plt.xlabel('Average Performance of Models', fontsize=50)
+plt.title('Average Scores for Use Cases', fontsize=50)
+plt.yticks(rotation=15, fontsize=50, ha="right")
+plt.xticks(fontsize=50)
+handles, labels = plt.gca().get_legend_handles_labels()
+plt.legend(reversed(handles), reversed(labels), fontsize=50)
+
+plt.xlim(0, 0.6)
+plt.tight_layout()
+plt.savefig("use_case.png")
+plt.show()
+
