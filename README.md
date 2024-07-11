@@ -1,11 +1,14 @@
 
 # HEMM
 
-## Overview 
+## Overview
 
 <div align="center">
     <img src="./images/hemm_overview.png" alt="Radial Plot" width="600px"/>
 </div>
+
+[**HEMM: Holistic Evaluation of Multimodal Foundation Models**](https://arxiv.org/abs/2407.03418)<br>
+Paul Pu Liang, Akshay Goindani, Talha Chafekar, Leena Mathur, Haofei Yu, Ruslan Salakhutdinov, Louis-Philippe Morency<br>
 
 Multimodal foundation models that can holistically process text alongside images, video, audio, and other sensory modalities are increasingly used in a variety of real-world domains. However, it is challenging to characterize and study progress in multimodal foundation models, given the range of possible modeling decisions, tasks, and domains. In this work, we introduce Holistic Evaluation of Multimodal Models (HEMM) as a framework to systematically evaluate the capabilities of multimodal foundation models across a set of 3 comprehensive dimensions: basic skills, information flow, and real-world use cases.
 
@@ -16,9 +19,6 @@ Multimodal foundation models that can holistically process text alongside images
 3. *Use cases* span domain-specific challenges introduced in real-world multimedia, affective computing, natural sciences, healthcare, and human-computer interaction applications.
 
 Overall, HEMM's collection of 30 datasets enables a systematic evaluation of today's multimodal foundation models. Through comprehensive experiments of many models across HEMM tasks, we (1) identify key *dataset dimensions* (e.g., basic skills, information flows, and use cases) that pose challenges to today's models, and (2) distill performance trends regarding how different *modeling dimensions* (e.g., scale, pre-training data, multimodal alignment, pre-training, and instruction tuning objectives) influence downstream task performance. These findings yield important conclusions regarding challenging multimodal interactions, use cases, and tasks requiring reasoning and external knowledge, the benefits of data and model scale, and the benefits of instruction-tuning.
-
-[**HEMM: Holistic Evaluation of Multimodal Foundation Models**](https://arxiv.org/abs/2407.03418)<br>
-Paul Pu Liang, Akshay Goindani, Talha Chafekar, Leena Mathur, Haofei Yu, Ruslan Salakhutdinov, Louis-Philippe Morency<br>
 
 If you find this repository useful, please cite the corresponding paper:
 ```
