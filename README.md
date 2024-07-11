@@ -17,6 +17,16 @@ Multimodal foundation models that can holistically process text alongside images
 
 Overall, HEMM's collection of 30 datasets enables a systematic evaluation of today's multimodal foundation models. Through comprehensive experiments of many models across HEMM tasks, we (1) identify key *dataset dimensions* (e.g., basic skills, information flows, and use cases) that pose challenges to today's models, and (2) distill performance trends regarding how different *modeling dimensions* (e.g., scale, pre-training data, multimodal alignment, pre-training, and instruction tuning objectives) influence downstream task performance. These findings yield important conclusions regarding challenging multimodal interactions, use cases, and tasks requiring reasoning and external knowledge, the benefits of data and model scale, and the benefits of instruction-tuning.
 
+If you find this repository useful, please cite the relevant work:
+```
+@article{liang2024hemm,
+  title={HEMM: Holistic Evaluation of Multimodal Foundation Models},
+  author={Liang, Paul Pu and Goindani, Akshay and Chafekar, Talha and Mathur, Leena and Yu, Haofei and Salakhutdinov, Ruslan and Morency, Louis-Philippe},
+  journal={arXiv preprint arXiv:2407.03418},
+  year={2024}
+}
+```
+
 ## Categorization 
 
 ### Dataset Categorization
