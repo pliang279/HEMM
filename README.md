@@ -20,7 +20,7 @@ Overall, HEMM's collection of 30 datasets enables a systematic evaluation of tod
 [**HEMM: Holistic Evaluation of Multimodal Foundation Models**](https://arxiv.org/abs/2407.03418)<br>
 Paul Pu Liang, Akshay Goindani, Talha Chafekar, Leena Mathur, Haofei Yu, Ruslan Salakhutdinov, Louis-Philippe Morency<br>
 
-If you find this repository useful, please cite the relevant work:
+If you find this repository useful, please cite the corresponding paper:
 ```
 @article{liang2024hemm,
   title={HEMM: Holistic Evaluation of Multimodal Foundation Models},
@@ -165,4 +165,5 @@ print(results)
 
 ## Leaderboard
 
+coming soon!
 
