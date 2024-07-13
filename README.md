@@ -1,5 +1,5 @@
 
-# HEMM: Holistic Evaluation of Multimodal Foundation Models
+# Holistic Evaluation of Multimodal Foundation Models
 
 ## Overview
 
